@@ -148,3 +148,23 @@ describe("chapter 5: fabric frames", () => {
     );
   });
 });
+
+describe("captions of the middle steps", () => {
+  it("names an all-gather step that is not the last", () => {
+    const r = fx.ring.find((x) => x.n === 4 && x.seed === 7)!.out as Ring;
+    expect(ringCaption(r, 4)).toMatch(/^All-gather step 1 of 3: /);
+    expect(ringCaption(r, 4)).not.toContain("full sum");
+  });
+  it("names the route inside one leaf, and oversubscription", () => {
+    const c = fx.treeSteps.find(
+      (x) => x.n === 576 && x.k === 64 && x.oversub === 2,
+    )!;
+    const py = c.out as TreeStep[];
+    const t = fatTree(576, 64, 2);
+    expect(treeCaption(t, py[0]!, py.length)).toContain("2:1 oversubscribed");
+    const local = py.find((s) => s.key === "route-local")!;
+    expect(treeCaption(t, local, py.length)).toContain(
+      "Traffic between GPUs on one leaf never leaves it.",
+    );
+  });
+});
