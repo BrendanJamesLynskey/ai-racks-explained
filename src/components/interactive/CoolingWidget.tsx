@@ -28,10 +28,10 @@ import {
 import { MUTED, OKABE_ITO } from "@/lib/viz/palette";
 
 const W = 360;
-const H = 236;
+const H = 262;
 const RX0 = 112;
 const RX1 = 248;
-const RY0 = 26;
+const RY0 = 34;
 const RY1 = 170;
 const SUP_X = 96;
 const RET_X = 264;
@@ -130,7 +130,7 @@ export default function CoolingWidget({
         ))}
         <text
           x={(RX0 + RX1) / 2}
-          y={RY0 - 8}
+          y={RY0 - 10}
           textAnchor="middle"
           style={{ fontSize: fs(10) }}
           className="fill-neutral-700 dark:fill-neutral-300"
@@ -156,7 +156,7 @@ export default function CoolingWidget({
         />
         <text
           x={(SUP_X + RET_X) / 2}
-          y={CDU_Y + 4}
+          y={CDU_Y + 12 + fs(12)}
           textAnchor="middle"
           style={{ fontSize: fs(10) }}
           className="fill-neutral-700 dark:fill-neutral-300"

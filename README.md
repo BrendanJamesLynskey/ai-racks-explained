@@ -3,8 +3,11 @@
 An animated explainer of the machines that train and serve large models,
 from one GPU package to a hall of racks: the scale ladder and what crosses
 each boundary, GPU packages and their HBM, compute trays and the paths data
-takes through them, the NVLink rack as one domain, and the scale-out network
-of leaf, spine and core switches. NVIDIA's rack-scale systems (GB200 and
+takes through them, the NVLink rack as one domain, the scale-out network
+of leaf, spine and core switches, power and cooling at rack scale,
+**disaggregated inference on a rack** (the centrepiece, run live on a tested
+discrete-event simulator), training clusters, other vendors' designs and cost
+per token. NVIDIA's rack-scale systems (GB200 and
 GB300 NVL72, Vera Rubin NVL72) are the main worked example, because their
 specifications and reference designs are published in detail. Every chapter
 is built around an animation, every frame of every animation is computed by
@@ -31,25 +34,28 @@ and the slides of the
 
 ## Part of
 
-This repository is brief 31 of a programme of companion sites. Part A (this
-state) builds the model, the sourced data and chapters 1–5; part B adds
-power, cooling, disaggregated inference on racks (driven by the
+This repository is brief 31 of a programme of companion sites. Part A built
+the model, the sourced data and chapters 1–5; part B (this state) adds
+chapters 6–11: power, cooling, disaggregated inference on racks (driven by the
 [Disaggregated_Inference_Sim](https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim)),
 training clusters, other designs and cost; part C makes Racks live in the
 shared site switch.
 
 ## Chapters
 
-| #   | Chapter                                                                                         | The animation                                                                                                              |
-| --- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| 1   | [From chip to data centre](https://ai-racks-explained.vercel.app/learn/01-chip-to-data-centre)  | A zoom from one package out to a hall, with the bandwidth one GPU has at each rung (log scale)                             |
-| 2   | [The package](https://ai-racks-explained.vercel.app/learn/02-the-package)                       | A model's weights filling a GPU's HBM stack by stack; GPUs needed and the batch-1 read floor                               |
-| 3   | [Trays and nodes](https://ai-racks-explained.vercel.app/learn/03-trays-and-nodes)               | A 2 GB payload in chunks crossing the links of a GB200 tray (network, Grace memory, another GPU), store-and-forward        |
-| 4   | [Scale-up: NVLink and NVSwitch](https://ai-racks-explained.vercel.app/learn/04-scale-up-nvlink) | Ring all-reduce on real numbers, timed over NVLink and over the network; the NVL72 wiring                                  |
-| 5   | [Scale-out: the network](https://ai-racks-explained.vercel.app/learn/05-scale-out-network)      | A fat tree built tier by tier for the GPUs and switch you pick, then a route across it; the SuperPOD's rail-aligned design |
-
-Coming (part B): power; cooling; disaggregated inference on racks; training
-clusters; other designs; cost.
+| #   | Chapter                                                                                                     | The animation                                                                                                                                                                                     |
+| --- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | [From chip to data centre](https://ai-racks-explained.vercel.app/learn/01-chip-to-data-centre)              | A zoom from one package out to a hall, with the bandwidth one GPU has at each rung (log scale)                                                                                                    |
+| 2   | [The package](https://ai-racks-explained.vercel.app/learn/02-the-package)                                   | A model's weights filling a GPU's HBM stack by stack; GPUs needed and the batch-1 read floor                                                                                                      |
+| 3   | [Trays and nodes](https://ai-racks-explained.vercel.app/learn/03-trays-and-nodes)                           | A 2 GB payload in chunks crossing the links of a GB200 tray (network, Grace memory, another GPU), store-and-forward                                                                               |
+| 4   | [Scale-up: NVLink and NVSwitch](https://ai-racks-explained.vercel.app/learn/04-scale-up-nvlink)             | Ring all-reduce on real numbers, timed over NVLink and over the network; the NVL72 wiring                                                                                                         |
+| 5   | [Scale-out: the network](https://ai-racks-explained.vercel.app/learn/05-scale-out-network)                  | A fat tree built tier by tier for the GPUs and switch you pick, then a route across it; the SuperPOD's rail-aligned design                                                                        |
+| 6   | [Power](https://ai-racks-explained.vercel.app/learn/06-power)                                               | A training rack's load swinging, and the grid's draw flattened by the power shelves' stored energy; bus currents at 50, 54 and 800 V                                                              |
+| 7   | [Cooling](https://ai-racks-explained.vercel.app/learn/07-cooling)                                           | Coolant parcels round a rack's loop (CDU, manifolds, cold plates), temperatures and flow from Q = ṁ c_p ΔT; air for comparison                                                                    |
+| 8   | [Disaggregated inference on a rack](https://ai-racks-explained.vercel.app/learn/08-disaggregated-inference) | The vendored Disaggregated_Inference_Sim engine, in a Web Worker, serving 1,500 requests on 72 GPUs split into prefill and decode pools; pick the split, the KV link and a context-optimised part |
+| 9   | [Training clusters](https://ai-racks-explained.vercel.app/learn/09-training-clusters)                       | A TP × PP × DP job placed on NVLink domains group by group, and which traffic crosses the network; checkpoint intervals by Young's rule                                                           |
+| 10  | [Other designs](https://ai-racks-explained.vercel.app/learn/10-other-designs)                               | Hop shells from one chip of a TPU-style 3D torus against a switched rack; TPU pods, AMD Helios, AWS Trainium UltraServers                                                                         |
+| 11  | [Cost per token](https://ai-racks-explained.vercel.app/learn/11-cost)                                       | Capital written off and electricity spent, quarter by quarter, against tokens served (illustrative prices)                                                                                        |
 
 ### The hero animations
 
@@ -60,9 +66,17 @@ versions sit beside them in [`docs/media/`](docs/media/).
 | -------------------------------- | ---------------------------------- | ------------------------------ |
 | ![Ladder](docs/media/ladder.gif) | ![Package](docs/media/package.gif) | ![Paths](docs/media/paths.gif) |
 
-| Ring all-reduce              | Fat tree                         |
-| ---------------------------- | -------------------------------- |
-| ![Ring](docs/media/ring.gif) | ![Fabric](docs/media/fabric.gif) |
+| Ring all-reduce              | Fat tree                         | Power smoothing                |
+| ---------------------------- | -------------------------------- | ------------------------------ |
+| ![Ring](docs/media/ring.gif) | ![Fabric](docs/media/fabric.gif) | ![Power](docs/media/power.gif) |
+
+| Cooling loop                       | Disaggregated inference          | Training layout                      |
+| ---------------------------------- | -------------------------------- | ------------------------------------ |
+| ![Cooling](docs/media/cooling.gif) | ![Disagg](docs/media/disagg.gif) | ![Training](docs/media/training.gif) |
+
+| Torus hops                     | Cost per token               |
+| ------------------------------ | ---------------------------- |
+| ![Torus](docs/media/torus.gif) | ![Cost](docs/media/cost.gif) |
 
 ## Screenshots
 
@@ -73,6 +87,14 @@ versions sit beside them in [`docs/media/`](docs/media/).
 | Paths through a tray                    | Ring all-reduce                       | Fat tree                                  |
 | --------------------------------------- | ------------------------------------- | ----------------------------------------- |
 | ![Paths](docs/screenshots/04-paths.png) | ![Ring](docs/screenshots/05-ring.png) | ![Fabric](docs/screenshots/06-fabric.png) |
+
+| Power                                   | Cooling                                     | Disaggregated inference                   |
+| --------------------------------------- | ------------------------------------------- | ----------------------------------------- |
+| ![Power](docs/screenshots/08-power.png) | ![Cooling](docs/screenshots/09-cooling.png) | ![Disagg](docs/screenshots/10-disagg.png) |
+
+| Training clusters                             | Other designs                           | Cost                                  |
+| --------------------------------------------- | --------------------------------------- | ------------------------------------- |
+| ![Training](docs/screenshots/11-training.png) | ![Torus](docs/screenshots/12-torus.png) | ![Cost](docs/screenshots/13-cost.png) |
 
 ## The model
 
@@ -95,7 +117,23 @@ not a simulator of any product. It computes:
   two- and three-tier fat trees of k-port switches with optional leaf
   oversubscription, their switches, links and transceivers, and the
   rail-aligned rules of NVIDIA's DGX SuperPOD (GB200) reference
-  architecture.
+  architecture;
+- **power** (`power_chain`, `busbar`, `smoothing`, `smoothing_steps`): a
+  rack's power shelves against its load (N+N), bus current and I²R loss at
+  50, 54 and 800 V, and a square-wave training load smoothed by stored
+  energy;
+- **cooling** (`water_cp`, `air_cp`, `heat_flow`, `cooling_loop`,
+  `loop_steps`): Q = ṁ c_p ΔT with water's c_p from NIST's Shomate equation
+  and air's from NASA's standard-day figures, a rack's coolant loop and the
+  air that would carry the same heat;
+- **training clusters** (`training_layout`, `layout_steps`, `checkpoint`):
+  where tensor-, pipeline- and data-parallel traffic lands when ranks fill
+  NVLink domains in Llama 3's order, and Young's checkpoint interval at the
+  Llama 3 run's interruption rate;
+- **other designs** (`torus`, `torus_shells`, `tpu_compare`): hop counts and
+  bisection of a k-ary 3-cube against a switched rack;
+- **cost** (`tco`, `tco_steps`): capital and electricity per million output
+  tokens, every price illustrative.
 
 Every time is a bandwidth term (no latency, protocol overhead or
 congestion). NVLink and NVLink-C2C are quoted by NVIDIA as bidirectional
@@ -118,14 +156,39 @@ the numbers the chapters use and the validation band to
 [`results.md`](results.md); the site shows the same on
 [/specs](https://ai-racks-explained.vercel.app/specs).
 
+### Chapter 8: the simulator, vendored
+
+Chapter 8 does not use the rack model. It runs
+[Disaggregated_Inference_Sim](https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim)'s
+own JavaScript engine, vendored byte for byte at commit `b187479`
+(`pnpm vendor <commit>` copies `web/sim_engine.js` and `examples/results.md`
+from `git show` and records their SHA-256 in
+[`src/lib/racks/vendor/VENDORED.json`](src/lib/racks/vendor/VENDORED.json)),
+in a Web Worker. The rack's KV links and the illustrative context-optimised
+part are registered with the engine at run time
+([`src/lib/racks/disagg.ts`](src/lib/racks/disagg.ts)), so the vendored file
+stays unmodified. [`scripts/disagg_reference.py`](scripts/disagg_reference.py)
+runs the simulator's Python package at the same commit on the same 1,500
+recorded requests (`public/racks/disagg/workload.json`) for all 36
+configurations (4 pool splits × 3 links × 3 part placements) and writes
+`src/data/disagg.json` and `tests/fixtures/disagg_parity.json`;
+`tests/unit/disagg.test.ts` requires the browser engine to reproduce every
+request's seven timestamps bit for bit (SHA-256 of the doubles) on six of
+them, and every recorded summary the chapter quotes on all 36. CI's model job
+checks out the simulator at the vendored commit and re-runs the script with
+`--check`. The simulator's own validation against published serving results
+is section 22 of its `results.md`.
+
 ### Validation band
 
-The model is checked against 21 published figures it does not take as
+The model is checked against 27 published figures it does not take as
 inputs: rack NVLink and HBM totals from per-GPU figures (GB200, Vera Rubin,
 DGX B200), the NVL72 wiring (1,296 GPU links fill 1,296 switch ports), the
 NVLink switch tray's 57.6 Tb/s, the two-tier size of a 144-port fat tree
-("over 10,000 GPUs"), and every leaf, spine and core count in the SuperPOD
-reference architecture's Table 3 (exact). The band is 0.9874 to 1.0368; the
+("over 10,000 GPUs"), every leaf, spine and core count in the SuperPOD
+reference architecture's Table 3 (exact), and AMD's and AWS's system totals
+(Helios HBM and bandwidth, Trn2 and Trainium3 UltraServers) against their
+per-chip figures. The band is 0.9874 to 1.0368; the
 two gaps from 1 are rounding in the published figures
 ([results.md](results.md#validation-band)).
 
@@ -139,6 +202,19 @@ two gaps from 1 are rounding in the published figures
   Grace over NVLink-C2C.
 - Optics power: the watts per transceiver are a slider, because the sources
   used publish no per-port figure; every link is counted as optical.
+- Power smoothing: a square-wave load between the rack's stated power and
+  half of it; GB300's 65 J per GPU applied to the GB200 rack; a perfect store.
+- Cooling: 90% of the heat on cold plates, the temperature rises and the
+  facility temperatures; water at 1 kg per litre.
+- Chapter 8: the simulator's power coefficients (GPU power only), its link
+  latencies and energy per bit, and the context-optimised part (the B200
+  preset's compute, 128 GB at 2 TB/s); the simulator's B200 preset is the
+  DGX B200 GPU.
+- Training: a 60 s checkpoint save; one run's interruption rate applied to
+  every job size; ranks placed in order, with no topology-aware placement.
+- Other designs: a TPU chip's inter-chip bandwidth split equally over its six
+  links.
+- Cost: every price (capital, electricity, PUE, utilisation).
 
 ### Checked
 
@@ -153,6 +229,8 @@ two gaps from 1 are rounding in the published figures
   if the fixtures, `src/data/racks.json` or `results.md` are out of date.
 - Frame tests: key frames of every animation equal the reference's states,
   and the captions built from them are what the page shows (unit and e2e).
+- Engine parity (chapter 8): the vendored engine against the simulator's
+  Python package, bit for bit (`tests/unit/disagg.test.ts`).
 - Numbers in the prose are printed from the model at build time
   (`<V of="…" />`); the few written in words are recomputed in
   `tests/unit/values.test.ts`.
@@ -194,7 +272,9 @@ at commit `f1dfd1a`:
 | CI, Playwright, Vitest and Lighthouse configs, `scripts/`, `RUNBOOK.md`                                        | adapted (new model, pages and chapters)                                                               |
 
 New here: the rack model and its port, the sourced tables
-(`src/components/mdx/Tables.tsx`), `/specs`, and the five widgets.
+(`src/components/mdx/Tables.tsx`), `/specs`, the eleven widgets, and the
+vendored simulator with its Web Worker (`src/components/interactive/sim/`,
+adapted from the companion sites' runner).
 
 ## Local development
 
@@ -204,6 +284,15 @@ cd ai-racks-explained
 pnpm install
 python3 -m venv .venv && .venv/bin/pip install -r reference/requirements.txt
 pnpm dev                              # http://localhost:3000
+```
+
+## Changing the simulator's pin (chapter 8)
+
+```bash
+pnpm vendor <commit>                                         # copy the engine and results.md at that commit
+../Disaggregated_Inference_Sim/.venv/bin/python scripts/disagg_reference.py ../Disaggregated_Inference_Sim
+python3 scripts/make_fixtures.py                             # results.md quotes chapter 8's runs
+pnpm test
 ```
 
 ## Changing the model
@@ -236,10 +325,12 @@ export, then `pnpm smoke`.
 ```
 content/chapters/     The MDX chapters, each opening with its animation
 reference/            The Python rack-scale model
-scripts/              make_fixtures, smoke-check, capture-screenshots, capture-animations
+scripts/              make_fixtures, disagg_reference, vendor-sim, smoke-check, capture-screenshots, capture-animations
 src/app/              Routes: /, /learn, /learn/[slug], /specs, /about
-src/lib/racks/        The TypeScript model, the captions, the values the prose quotes
-src/data/             Specifications and sources (generated by make_fixtures.py)
+src/lib/racks/        The TypeScript model, the captions, the values the prose quotes, the chapter 8 engine wrapper
+src/lib/racks/vendor/ Disaggregated_Inference_Sim's engine and results.md, vendored at a pinned commit
+public/racks/         Chapter 8's recorded requests
+src/data/             Specifications and sources (make_fixtures.py); chapter 8's runs (disagg_reference.py)
 src/components/       Animation panel, widgets, tables, figures
 tests/python/         pytest
 tests/unit/           Vitest (fixtures in tests/fixtures/)
@@ -255,6 +346,10 @@ results.md            Every figure with its source and date, chapter numbers, va
 - Al-Fares, Loukissas and Vahdat, 2008 — _A scalable, commodity data center network architecture_, [doi:10.1145/1402946.1402967](https://doi.org/10.1145/1402946.1402967).
 - Patarasuk and Yuan, 2009 — _Bandwidth optimal all-reduce algorithms for clusters of workstations_, [doi:10.1016/j.jpdc.2008.09.002](https://doi.org/10.1016/j.jpdc.2008.09.002).
 - Grattafiori et al., 2024 — _[The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)_; DeepSeek-AI, 2024 — _[DeepSeek-V3 Technical Report](https://arxiv.org/abs/2412.19437)_ (parameter counts).
+- Power and cooling: NVIDIA, [800 VDC architecture](https://developer.nvidia.com/blog/nvidia-800-v-hvdc-architecture-will-power-the-next-generation-of-ai-factories/), [GB300 NVL72 power smoothing](https://developer.nvidia.com/blog/how-new-gb300-nvl72-features-provide-steady-power-for-ai/), [Blackwell liquid cooling](https://blogs.nvidia.com/blog/blackwell-platform-water-efficiency-liquid-cooling-data-centers-ai-factories/); NIST, [water thermochemistry](https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Mask=2); NASA Glenn, [air properties](https://www.grc.nasa.gov/www/k-12/airplane/airprop.html).
+- Disaggregated serving: Zhong et al., 2024 — _[DistServe](https://arxiv.org/abs/2401.09670)_; Patel et al., 2023 — _[Splitwise](https://arxiv.org/abs/2311.18677)_; NVIDIA, [Rubin CPX](https://nvidianews.nvidia.com/news/nvidia-unveils-rubin-cpx-a-new-class-of-gpu-designed-for-massive-context-inference) and [Dynamo](https://github.com/ai-dynamo/dynamo).
+- Training: Narayanan et al., 2021 — _[Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM](https://arxiv.org/abs/2104.04473)_; Young, 1974 — _A first order approximation to the optimum checkpoint interval_, [doi:10.1145/361147.361115](https://doi.org/10.1145/361147.361115).
+- Other designs: Jouppi et al., 2023 — _[TPU v4](https://arxiv.org/abs/2304.01433)_; Google Cloud, [TPU v5p](https://cloud.google.com/tpu/docs/v5p) and [TPU7x](https://cloud.google.com/tpu/docs/tpu7x); AMD, [Helios](https://www.amd.com/en/blogs/2025/amd-helios-ai-rack-built-on-metas-2025-ocp-design.html); AWS, [Trn2](https://aws.amazon.com/ec2/instance-types/trn2/) and [Trainium](https://aws.amazon.com/ai/machine-learning/trainium/).
 - Okabe and Ito, 2008 — _[Color Universal Design](https://jfly.uni-koeln.de/color/)_ (the palette).
 
 ## Contributing
@@ -263,7 +358,7 @@ PRs welcome. CI runs the model job (fixtures, site data and results.md up to
 date; pytest), `format:check`, `lint`, `typecheck`, unit tests with coverage
 thresholds, e2e on a production build, and Lighthouse CI (performance,
 accessibility and best practices must each score at least 90 on `/`,
-`/specs` and the five chapters).
+`/specs` and the eleven chapters).
 
 ## Licence
 

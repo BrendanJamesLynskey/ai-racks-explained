@@ -67,6 +67,14 @@ export default function CostWidget({
 
   const visual = (
     <div className="mx-auto max-w-md">
+      <p
+        className="text-sm font-medium text-neutral-800 dark:text-neutral-200"
+        data-running={s.usd_per_mtok ?? ""}
+      >
+        {s.usd_per_mtok === null
+          ? "Nothing served yet."
+          : `${fmtUsd(s.usd_per_mtok)} per million tokens so far`}
+      </p>
       <svg
         ref={font.ref}
         viewBox={`0 0 ${W} ${H}`}
@@ -141,16 +149,6 @@ export default function CostWidget({
           className="fill-neutral-600 font-mono dark:fill-neutral-400"
         >
           year {ci.years}
-        </text>
-        <text
-          x={X0 + 4}
-          y={Y0 + 6}
-          style={{ fontSize: fs(11) }}
-          className="fill-neutral-800 font-medium dark:fill-neutral-200"
-        >
-          {s.usd_per_mtok === null
-            ? "nothing served yet"
-            : `${fmtUsd(s.usd_per_mtok)} per million tokens`}
         </text>
       </svg>
       <p className="mt-1 text-[0.7rem] text-neutral-600 dark:text-neutral-400">

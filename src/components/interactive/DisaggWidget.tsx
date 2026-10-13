@@ -34,11 +34,11 @@ import {
 import { LINK_COLOUR, MUTED, STATE_COLOUR } from "@/lib/viz/palette";
 
 const W = 360;
-const H = 268;
+const H = 250;
 const POOL_Y = 24;
 const BOX = 32;
-const CH_Y0 = 132;
-const CH_Y1 = 232;
+const CH_Y0 = 124;
+const CH_Y1 = 220;
 const X0 = 34;
 const X1 = 352;
 
@@ -197,18 +197,6 @@ export default function DisaggWidget({
             </g>
           );
         })}
-        {/* the hand-offs in flight */}
-        <text
-          x={12}
-          y={POOL_Y + 2 * (BOX + 8) + 14}
-          style={{ fontSize: fs(10) }}
-          className="fill-neutral-700 dark:fill-neutral-300"
-        >
-          <tspan fill={fill.handoff} fontWeight={700}>
-            ━━
-          </tspan>{" "}
-          KV over {DISAGG.links[lk].name}: {c ? c.handoff : 0} in flight
-        </text>
         {/* stage occupancy over time, revealed up to the current frame */}
         {[0, 0.5, 1].map((f) => (
           <g key={f}>
@@ -288,6 +276,18 @@ export default function DisaggWidget({
           requests in the rack, by stage
         </text>
       </svg>
+      <p
+        className="mt-1 text-xs text-neutral-700 dark:text-neutral-300"
+        data-handoff={c ? c.handoff : 0}
+      >
+        <span
+          aria-hidden="true"
+          className="mr-1 inline-block h-1 w-5 align-middle"
+          style={{ backgroundColor: fill.handoff }}
+        />
+        KV caches in flight now: {c ? c.handoff : 0}, over{" "}
+        {DISAGG.links[lk].name}.
+      </p>
       <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[0.7rem] text-neutral-700 dark:text-neutral-300">
         {(["prefill", "handoff", "decode", "waiting"] as const).map((s) => (
           <li key={s} className="flex items-center gap-1">
