@@ -169,7 +169,7 @@ def test_rail_aligned_reproduces_superpod_table3():
 
 def test_validation_band():
     rows = r.validation()
-    assert len(rows) == 9 + 12
+    assert len(rows) == 9 + 6 + 12
     for row in rows:
         assert 0.98 <= row["ratio"] <= 1.04, row["id"]
         assert row["src"] in r.SOURCES
@@ -186,3 +186,87 @@ def test_pipeline_matches_the_flow_shop_closed_form():
             p = r.pipeline(hops, 2e9, c)
             d = [2e9 / c / h["bw"] for h in hops]
             assert p["total"] == pytest.approx(sum(d) + (c - 1) * max(d), rel=1e-12)
+
+
+# --- chapters 6-11 (brief 31B) ---------------------------------------------------
+
+
+def test_new_sources_dated_and_records_sourced():
+    for rec in list(r.FACILITY.values()) + list(r.OTHERS.values()):
+        assert rec["avail"]["v"] in ("product", "preliminary", "planned")
+        for k, f in rec["fields"].items():
+            assert f["src"] in r.SOURCES, k
+            assert f["st"] in ("spec", "derived", "rule", "illustrative", "undisclosed"), k
+            assert (f["v"] is None) == (f["st"] == "undisclosed"), k
+    for f in list(r.PHYS["fields"].values()) + list(r.LLAMA3_RUN.values()):
+        assert f["src"] in r.SOURCES
+    for f in r.COST_ILLUSTRATIVE.values():
+        assert f["st"] == "illustrative"
+
+
+def test_power_chain_from_the_dgx_guide():
+    p = r.power_chain()
+    assert p["psus"] == 48 and p["installed_w"] == 264e3 and p["usable_w"] == 132e3
+    assert p["input_w"] == 264e3  # eight shelves of 33 kW input: the supplies' rating
+    assert p["busbar_a"] == 2400 and p["margin"] == pytest.approx(1.1)
+    assert r.busbar(1e6, 54)["copper_kg"] == pytest.approx(200)  # the blog's own figure comes back
+    assert r.busbar(1e6, 800)["loss_rel"] == pytest.approx((54 / 800) ** 2)
+
+
+def test_smoothing_conserves_the_store_and_the_average():
+    for h in (0.05, 0.25, 1.0):
+        for j in (0.0, 65.0, 650.0):
+            m = r.rack_smoothing(h, j)
+            # the grid supplies the same energy per period as the load uses
+            assert m["grid_hi"] * m["t_hi"] + m["grid_lo"] * m["t_lo"] == pytest.approx(m["p_hi"] * m["t_hi"] + m["p_lo"] * m["t_lo"])
+            assert m["used_j"] <= m["e_store"] + 1e-9
+            assert m["p_avg"] <= m["grid_hi"] <= m["p_hi"]
+            steps = r.smoothing_steps(m)
+            assert len(steps) == 1 + 2 * 2 * 6
+            assert steps[-1]["stored"] == pytest.approx(m["e_store"], abs=1e-6)
+            assert min(s["stored"] for s in steps) >= -1e-6
+    assert r.rack_smoothing(0.05, 65)["swing"] == 0  # a fast swing is flattened completely
+    assert r.rack_smoothing(1.0, 0)["peak_cut"] == 0
+
+
+def test_heat_balance():
+    assert r.water_cp() == pytest.approx(4184, abs=1)  # NIST's 75.4 J/(mol K) over 18.015 g/mol
+    assert r.air_cp() == pytest.approx(1001)
+    h = r.heat_flow(120e3, 10, 15)
+    assert h["water_kg_s"] * r.water_cp() * 10 == pytest.approx(120e3)
+    assert h["air_m3_s"] * 1.229 * r.air_cp() * 15 == pytest.approx(120e3)
+    c = r.cooling_loop(120e3, 0.9, 35, 10)
+    assert (c["t_sup"], c["t_ret"]) == (40, 50) and c["racks_per_cdu"] == 18
+    for st in r.loop_steps(c):
+        for p in st["parcels"]:
+            assert c["t_sup"] <= p["temp"] <= c["t_ret"]
+
+
+def test_training_layout_and_young():
+    x = r.training_layout(8, 16, 128, 72)
+    assert x["domains"] == 228 and x["tp_inside"] == x["tp_groups"] == 2048
+    assert 0 < x["pp_net"] < x["pp_hops"] and x["dp_net"] == 128
+    assert r.training_layout(8, 16, 128, 8)["pp_net"] == 1920  # 8-GPU servers: every stage boundary leaves the server
+    c = r.checkpoint(16384, 60)
+    assert c["per_day"] == pytest.approx(419 / 54)  # the run's own rate comes back at its own size
+    # tau minimises the first-order waste
+    f = lambda t: 60 / t + t / (2 * c["mtbf_s"])  # noqa: E731
+    assert f(c["tau_s"]) <= min(f(c["tau_s"] * 0.9), f(c["tau_s"] * 1.1))
+
+
+def test_torus_counts():
+    for k in (2, 4, 6, 8):
+        t = r.torus(k)
+        sh = r.torus_shells(k)
+        assert sum(sh) == t["nodes"] and len(sh) - 1 == t["diameter"]
+        assert sum(d * c for d, c in enumerate(sh)) / (t["nodes"] - 1) == pytest.approx(t["mean_hops"])
+    assert r.torus_shells(4) == [1, 6, 15, 20, 15, 6, 1]
+    c = r.tpu_compare(64e6)
+    assert c["link_dir"] == 100e9 and c["t_torus"] > c["t_nvl72"]
+
+
+def test_tco_adds_up():
+    x = r.tco(3.5e6, 4, 120e3, 1.2, 0.1, 50000, 0.7)
+    assert x["usd_per_mtok"] == pytest.approx((x["capex_yr"] + x["energy_usd_yr"]) / x["tokens_yr"] * 1e6)
+    steps = r.tco_steps(3.5e6, 4, 120e3, 1.2, 0.1, 50000, 0.7)
+    assert steps[-1]["capex"] == pytest.approx(3.5e6) and steps[-1]["usd_per_mtok"] == pytest.approx(x["usd_per_mtok"])

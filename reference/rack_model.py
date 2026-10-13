@@ -179,6 +179,102 @@ SOURCES: dict[str, dict[str, str]] = {
         "https://arxiv.org/abs/2412.19437",
         "paper",
     ),
+    # chapters 6-11 (brief 31B)
+    "800v-blog": _s(
+        "NVIDIA 800 VDC Architecture Will Power the Next Generation of AI Factories (NVIDIA Technical Blog, 2025-05-20, updated 2025-07-31)",
+        "https://developer.nvidia.com/blog/nvidia-800-v-hvdc-architecture-will-power-the-next-generation-of-ai-factories/",
+        "vendor technical blog",
+    ),
+    "smooth-blog": _s(
+        "How New GB300 NVL72 Features Provide Steady Power for AI (NVIDIA Technical Blog)",
+        "https://developer.nvidia.com/blog/how-new-gb300-nvl72-features-provide-steady-power-for-ai/",
+        "vendor technical blog",
+    ),
+    "water-blog": _s(
+        "Chill Factor: NVIDIA Blackwell Platform Boosts Water Efficiency by Over 300x (NVIDIA Blog)",
+        "https://blogs.nvidia.com/blog/blackwell-platform-water-efficiency-liquid-cooling-data-centers-ai-factories/",
+        "vendor blog",
+    ),
+    "nist-water": _s(
+        "NIST Chemistry WebBook, SRD 69: Water, condensed phase thermochemistry (liquid-phase Shomate equation, Chase 1998)",
+        "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Mask=2",
+        "reference data",
+    ),
+    "nasa-air": _s(
+        "NASA Glenn Research Center, Air Properties Definitions (sea-level standard day)",
+        "https://www.grc.nasa.gov/www/k-12/airplane/airprop.html",
+        "reference data",
+    ),
+    "nasa-gas": _s(
+        "NASA Glenn Research Center, Equation of State (specific gas constant of air) and Specific Heats (ratio for air)",
+        "https://www.grc.nasa.gov/www/k-12/airplane/eqstat.html",
+        "reference data",
+    ),
+    "cpx-news": _s(
+        "NVIDIA Unveils Rubin CPX: A New Class of GPU Designed for Massive-Context Inference (NVIDIA Newsroom, 2025-09-09)",
+        "https://nvidianews.nvidia.com/news/nvidia-unveils-rubin-cpx-a-new-class-of-gpu-designed-for-massive-context-inference",
+        "vendor press release",
+    ),
+    "dynamo-gh": _s(
+        "NVIDIA Dynamo, the open-source datacenter-scale inference stack (GitHub repository README)",
+        "https://github.com/ai-dynamo/dynamo",
+        "vendor software documentation",
+    ),
+    "distserve": _s(
+        "Zhong et al., DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving (arXiv 2401.09670)",
+        "https://arxiv.org/abs/2401.09670",
+        "paper",
+    ),
+    "splitwise": _s(
+        "Patel et al., Splitwise: Efficient generative LLM inference using phase splitting (arXiv 2311.18677)",
+        "https://arxiv.org/abs/2311.18677",
+        "paper",
+    ),
+    "disagg-sim": _s(
+        "Disaggregated_Inference_Sim: a discrete-event simulator of prefill/decode serving (this author's; the engine this site vendors)",
+        "https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim",
+        "simulator",
+    ),
+    "megatron2021": _s(
+        "Narayanan et al., Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM (arXiv 2104.04473)",
+        "https://arxiv.org/abs/2104.04473",
+        "paper",
+    ),
+    "young1974": _s(
+        "Young, A first order approximation to the optimum checkpoint interval, Communications of the ACM 1974 (doi:10.1145/361147.361115)",
+        "https://doi.org/10.1145/361147.361115",
+        "paper",
+    ),
+    "tpu-v4": _s(
+        "Jouppi et al., TPU v4: An Optically Reconfigurable Supercomputer for Machine Learning with Hardware Support for Embeddings (arXiv 2304.01433)",
+        "https://arxiv.org/abs/2304.01433",
+        "paper",
+    ),
+    "tpu-v5p": _s(
+        "Google Cloud documentation, TPU v5p (system architecture and configurations)",
+        "https://cloud.google.com/tpu/docs/v5p",
+        "vendor documentation",
+    ),
+    "tpu-7x": _s(
+        "Google Cloud documentation, TPU7x (Ironwood) (system architecture)",
+        "https://cloud.google.com/tpu/docs/tpu7x",
+        "vendor documentation",
+    ),
+    "helios-blog": _s(
+        "AMD 'Helios': Advancing Openness in AI Infrastructure Built on Meta's 2025 OCP Open Rack for AI Design (AMD blog, 2025-10-14)",
+        "https://www.amd.com/en/blogs/2025/amd-helios-ai-rack-built-on-metas-2025-ocp-design.html",
+        "vendor blog",
+    ),
+    "trn2-page": _s(
+        "Amazon EC2 Trn2 instances and UltraServers (product page)",
+        "https://aws.amazon.com/ec2/instance-types/trn2/",
+        "vendor product page",
+    ),
+    "trainium-page": _s(
+        "AWS Trainium (product page; Trainium3 UltraServers)",
+        "https://aws.amazon.com/ai/machine-learning/trainium/",
+        "vendor product page",
+    ),
 }
 
 
@@ -443,6 +539,124 @@ SWITCHES: dict[str, dict[str, Any]] = {
 
 SWITCH_ORDER = ("quantum2", "q3400", "sn5600", "q3450", "sn6810", "sn6800")
 
+# Chapters 6-7: power and cooling figures beyond the system records.
+FACILITY: dict[str, dict[str, Any]] = {
+    "power": {
+        "id": "power",
+        "name": "Rack power delivery",
+        "avail": _f("product", "spec", "800v-blog", "54 V racks ship today; 800 VDC is planned for 2027"),
+        "fields": {
+            "busbar_v": _f(54, "spec", "800v-blog", "'Today's racks in AI factories rely on 54 VDC power distribution'"),
+            "hvdc_v": _f(800, "spec", "800v-blog", "800 VDC to the compute rack, 'starting in 2027' (planned)"),
+            "mw_rack_w": _f(1e6, "spec", "800v-blog", "'to support 1 MW IT racks and beyond, starting in 2027' (planned)"),
+            "copper_1mw_kg": _f(200, "spec", "800v-blog", "'a single 1 MW rack requires up to 200 kg of copper busbar' at 54 VDC"),
+            "storage_j_per_gpu": _f(65, "spec", "smooth-blog", "GB300 NVL72 power supplies: '65 joules/GPU of energy storage' (capacitors)"),
+        },
+    },
+    "cooling": {
+        "id": "cooling",
+        "name": "Rack cooling",
+        "avail": _f("product", "spec", "water-blog", "figures quoted for shipping GB200 / GB300 NVL72 deployments"),
+        "fields": {
+            "legacy_rack_w": _f(20e3, "spec", "water-blog", "'data centers once operated at 20 kW per rack'"),
+            "hyperscale_rack_w": _f(135e3, "spec", "water-blog", "'today's hyperscale facilities can support over 135 kW per rack'"),
+            "cdu_w": _f(2e6, "spec", "water-blog", "a liquid-to-liquid CDU for GB300 NVL72: '2MW cooling capacity at 5°C approach temperature'"),
+            "cdu_approach_k": _f(5, "spec", "water-blog", "'5°C approach temperature'"),
+            "coldplate_w": _f(4000, "spec", "water-blog", "cold plates for 'over 4,000W thermal design power'"),
+            "liquid_parts": _f("CPUs and GPUs on cold plates; networking and storage air-cooled", "spec", "dgx-gb200-guide", "Compute Trays"),
+        },
+    },
+}
+
+# Physical properties (chapter 7). The water value is the NIST Shomate equation at 298.15 K (computed below).
+PHYS: dict[str, dict[str, Any]] = {
+    "shomate": {
+        "A": -203.6060, "B": 1523.290, "C": -3196.413, "D": 2474.455, "E": 3.855326,
+        "T": 298.15, "molar_mass_g": 18.0153,
+    },
+    "fields": {
+        "air_density": _f(1.229, "spec", "nasa-air", "sea-level standard day: 1.229 kg/m³"),
+        "air_r": _f(286.0, "spec", "nasa-gas", "gas constant of air: .286 kJ/(kg K)"),
+        "air_gamma": _f(1.4, "spec", "nasa-gas", "Specific Heats page: 'For air, gamma = 1.4 for standard day conditions'"),
+        "water_kg_per_l": _f(1.0, "illustrative", "nist-water", "one litre of water taken as 1 kg (0.997 kg at 25 °C)"),
+    },
+}
+
+# Chapter 10: other rack- and pod-scale designs (neutral; vendor figures as stated).
+OTHERS: dict[str, dict[str, Any]] = {
+    "tpu-v5p": {
+        "id": "tpu-v5p",
+        "name": "Google TPU v5p pod",
+        "avail": _f("product", "spec", "tpu-v5p", "Cloud TPU documentation"),
+        "fields": {
+            "chips": _f(8960, "spec", "tpu-v5p", "'There are 8960 chips in a v5p Pod'"),
+            "topology": _f("3D torus; 4x4x4 cubes joined by optical circuit switches", "spec", "tpu-v5p", "Interconnect topology: 3D torus; ICI resiliency section: OCS connect TPUs between cubes, copper within a cube"),
+            "scaleup_bidir": _f(1200e9, "spec", "tpu-v5p", "Bidirectional ICI bandwidth per chip 1200 GBps"),
+            "hbm_bw": _f(2765e9, "spec", "tpu-v5p", "HBM bandwidth per chip 2765 GBps"),
+            "dense_bf16": _f(459e12, "spec", "tpu-v5p", "Peak compute per chip (BF16) 459 TFLOPs"),
+        },
+    },
+    "tpu-7x": {
+        "id": "tpu-7x",
+        "name": "Google TPU7x (Ironwood) pod",
+        "avail": _f("product", "spec", "tpu-7x", "Cloud TPU documentation"),
+        "fields": {
+            "chips": _f(9216, "spec", "tpu-7x", "'a 9,216-chip footprint per Pod'"),
+            "topology": _f(None, "undisclosed", "tpu-7x", "the page used does not state the pod topology"),
+            "scaleup_bidir": _f(1200e9, "spec", "tpu-7x", "Bidirectional ICI bandwidth per chip 1200 GBps"),
+            "hbm_bw": _f(7380e9, "spec", "tpu-7x", "HBM bandwidth per chip 7380 GBps"),
+            "dense_bf16": _f(2307e12, "spec", "tpu-7x", "Peak compute per chip (BF16) 2307 TFLOPs"),
+        },
+    },
+    "helios": {
+        "id": "helios",
+        "name": "AMD Helios (72 x Instinct MI450)",
+        "avail": _f("planned", "spec", "helios-blog", "reference design, 'volume deployment expected in 2026'"),
+        "fields": {
+            "chips": _f(72, "spec", "helios-blog", "'a Helios system with 72 MI450 Series GPUs'"),
+            "topology": _f(None, "undisclosed", "helios-blog", "the scale-up fabric's topology is not stated in the source used"),
+            "scaleup_total": _f(260e12, "spec", "helios-blog", "'up to 260 TB/s of scale-up interconnect bandwidth'"),
+            "scaleout_total": _f(43e12, "spec", "helios-blog", "'43 TB/s of Ethernet-based scale-out bandwidth'"),
+            "hbm_bytes": _f(432e9, "spec", "helios-blog", "'up to 432 GB of HBM4 memory' per GPU"),
+            "hbm_bw": _f(19.6e12, "spec", "helios-blog", "'19.6 TB/s of memory bandwidth' per GPU"),
+            "hbm_total": _f(31e12, "spec", "helios-blog", "'31 TB of total HBM4 memory'"),
+            "hbm_bw_total": _f(1.4e15, "spec", "helios-blog", "'1.4 PB/s of aggregate bandwidth'"),
+            "rack_form": _f("Open Rack Wide (double-wide), liquid-cooled", "spec", "helios-blog", "ORW specification; 'backside quick-disconnect liquid cooling'"),
+        },
+    },
+    "trn2-ultra": {
+        "id": "trn2-ultra",
+        "name": "AWS Trn2 UltraServer (64 x Trainium2)",
+        "avail": _f("product", "spec", "trn2-page", "the page says both 'available now' and 'available in preview'"),
+        "fields": {
+            "chips": _f(64, "spec", "trn2-page", "'64 Trainium2 chips across four Trn2 instances'"),
+            "topology": _f("NeuronLink across four 16-chip instances", "spec", "trn2-page", "NeuronLink, 'our proprietary chip-to-chip interconnect'"),
+            "instance_chips": _f(16, "spec", "trn2-page", "'16 Trainium2 chips' per Trn2 instance"),
+            "instance_fp8": _f(20.8e15, "spec", "trn2-page", "Trn2 instance: 'up to 20.8 FP8 petaflops'"),
+            "fp8_total": _f(83.2e15, "spec", "trn2-page", "UltraServer: 'up to 83.2 FP8 petaflops'"),
+            "instance_hbm_bw": _f(46e12, "spec", "trn2-page", "Trn2 instance: '46 TBps of total memory bandwidth'"),
+            "hbm_bw_total": _f(185e12, "spec", "trn2-page", "UltraServer: '185 TBps of total memory bandwidth'"),
+            "scaleout_bps": _f(12.8e12, "spec", "trn2-page", "UltraServers: '12.8 Tbps of EFAv3 networking'"),
+            "scaleup_bidir": _f(None, "undisclosed", "trn2-page", "NeuronLink bandwidth per chip not stated on the page used"),
+        },
+    },
+    "trn3-ultra": {
+        "id": "trn3-ultra",
+        "name": "AWS Trainium3 UltraServer (144 x Trainium3)",
+        "avail": _f("product", "spec", "trainium-page", "product page lists the specifications"),
+        "fields": {
+            "chips": _f(144, "spec", "trainium-page", "'scale up to 144 Trainium chips'"),
+            "topology": _f("NeuronSwitch all-to-all fabric", "spec", "trainium-page", "'NeuronSwitch provides an all-to-all fabric'"),
+            "hbm_bytes": _f(144e9, "spec", "trainium-page", "'144 GB HBM3e per chip'"),
+            "hbm_bw": _f(4.9e12, "spec", "trainium-page", "'4.9 TB/s bandwidth' per chip"),
+            "hbm_total": _f(20.7e12, "spec", "trainium-page", "'20.7 TB of HBM3e'"),
+            "hbm_bw_total": _f(706e12, "spec", "trainium-page", "'706 TB/s of aggregate memory bandwidth'"),
+            "scaleup_bidir": _f(None, "undisclosed", "trainium-page", "interchip bandwidth per chip not stated on the page used"),
+        },
+    },
+}
+OTHER_ORDER = ("tpu-v5p", "tpu-7x", "helios", "trn2-ultra", "trn3-ultra")
+
 # Quoted claims: shown on the site, attributed, never used as model inputs.
 CLAIMS: dict[str, dict[str, str]] = {
     "cpo-power": {
@@ -456,6 +670,30 @@ CLAIMS: dict[str, dict[str, str]] = {
     "nvl72-one-gpu": {
         "text": "the 72 GPUs of an NVL72 'communicate as one' (all-to-all at 1.8 TB/s per GPU)",
         "src": "gb200-blog",
+    },
+    "800v-conductor": {
+        "text": "800 VDC 'enables 85% more power to be transmitted through the same conductor size' than 415 VAC, and 'up to 5%' better end-to-end efficiency than 54 V systems",
+        "src": "800v-blog",
+    },
+    "smooth-peak": {
+        "text": "energy-storage power shelves: 'the peak power demand seen by the grid is reduced by 30% when training the Megatron LLM'",
+        "src": "smooth-blog",
+    },
+    "vr-tokens-mw": {
+        "text": "Vera Rubin NVL72 'delivers up to 10x more tokens per megawatt than NVIDIA GB200 NVL72' (Kimi-K2 Thinking, 32K/8K input/output)",
+        "src": "vr-page",
+    },
+    "cpx-attention": {
+        "text": "Rubin CPX: 'up to 30 petaflops of compute with NVFP4 precision', '128GB of cost-efficient GDDR7', '3x faster attention' than GB300 NVL72; 'expected to be available at the end of 2026'",
+        "src": "cpx-news",
+    },
+    "liquid-300x": {
+        "text": "GB200 NVL72: '25x more energy efficiency and 300x more water efficiency than traditional air-cooled architectures'",
+        "src": "water-blog",
+    },
+    "distserve-goodput": {
+        "text": "DistServe 'can serve 7.4x more requests or 12.6x tighter SLO' than state-of-the-art systems (in its own evaluation)",
+        "src": "distserve",
     },
 }
 
@@ -1024,6 +1262,447 @@ def rail_aligned(sus: int) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Records for chapters 6-11
+# ---------------------------------------------------------------------------
+
+
+def facility(fid: str) -> dict[str, Any]:
+    """Flat dict of a facility record's values (power, cooling)."""
+    r = FACILITY[fid]
+    out: dict[str, Any] = {"id": r["id"], "name": r["name"], "avail": r["avail"]["v"]}
+    for k, f in r["fields"].items():
+        out[k] = f["v"]
+    return out
+
+
+def other(oid: str) -> dict[str, Any]:
+    """Flat dict of another vendor's design (chapter 10)."""
+    r = OTHERS[oid]
+    out: dict[str, Any] = {"id": r["id"], "name": r["name"], "avail": r["avail"]["v"]}
+    for k, f in r["fields"].items():
+        out[k] = f["v"]
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Chapter 6: power
+# ---------------------------------------------------------------------------
+
+
+def power_chain(sid: str = "gb200-nvl72") -> dict[str, Any]:
+    """The rack's power shelves against its load: installed supply, what survives N+N, the bus current."""
+    s = system(sid)
+    psus = s["power_shelves"] * s["psus_per_shelf"]
+    installed = psus * s["psu_w"]
+    usable = installed / 2  # N+N: either half of the supplies carries the rack
+    return {
+        "shelves": s["power_shelves"],
+        "psus": psus,
+        "installed_w": installed,
+        "usable_w": usable,
+        "input_w": s["power_shelves"] * s["shelf_input_w"],
+        "rack_w": s["rack_power_w"],
+        "margin": usable / s["rack_power_w"],
+        "per_gpu_w": s["rack_power_w"] / s["gpus"],
+        "dc_v": s["dc_volts"],
+        "busbar_a": s["rack_power_w"] / s["dc_volts"],
+    }
+
+
+def busbar(p_w: float, volts: float) -> dict[str, Any]:
+    """
+    Current on a DC bus, the resistive loss in the same conductor relative to 54 V (I^2 R, so the square of the
+    voltage ratio), and the copper a bus needs if it is sized for the same current density as NVIDIA's 1 MW,
+    54 V example (derived: copper in proportion to current).
+    """
+    p = facility("power")
+    amps = p_w / volts
+    r = p["busbar_v"] / volts
+    ref_amps = p["mw_rack_w"] / p["busbar_v"]
+    return {"p_w": p_w, "volts": volts, "amps": amps, "loss_rel": r * r, "copper_kg": p["copper_1mw_kg"] * amps / ref_amps}
+
+
+BUSBAR_CASES = ((120e3, 50.0), (120e3, 54.0), (120e3, 800.0), (1e6, 54.0), (1e6, 800.0))
+
+SMOOTH_LOW = 0.5  # illustrative: the low phase of a training step draws half the high phase's power
+
+
+def smoothing(p_hi: float, p_lo: float, t_hi: float, t_lo: float, e_store: float) -> dict[str, Any]:
+    """
+    A rack whose load alternates between p_hi for t_hi seconds and p_lo for t_lo seconds, with e_store joules of
+    storage in its power shelves. The store holds the grid's draw at a flat level through the high phase for as
+    long as it lasts, and is refilled in the low phase. Best flat level: the average, or p_hi less what the store
+    can supply over t_hi, whichever is higher.
+    """
+    period = t_hi + t_lo
+    p_avg = (p_hi * t_hi + p_lo * t_lo) / period
+    level = max(p_avg, p_hi - e_store / t_hi)
+    used = (p_hi - level) * t_hi
+    low = p_lo + used / t_lo
+    return {
+        "p_hi": p_hi,
+        "p_lo": p_lo,
+        "t_hi": t_hi,
+        "t_lo": t_lo,
+        "e_store": e_store,
+        "p_avg": p_avg,
+        "grid_hi": level,
+        "grid_lo": low,
+        "used_j": used,
+        "peak_cut": (p_hi - level) / p_hi,
+        "swing": level - low,
+        "raw_swing": p_hi - p_lo,
+        "store_use": used / e_store if e_store > 0 else 0.0,
+    }
+
+
+def rack_smoothing(half_period: float, j_per_gpu: float, sid: str = "gb200-nvl72") -> dict[str, Any]:
+    """smoothing() for one rack: its stated power as the high phase, SMOOTH_LOW of it as the low phase."""
+    s = system(sid)
+    p_hi = s["rack_power_w"]
+    return smoothing(p_hi, SMOOTH_LOW * p_hi, half_period, half_period, j_per_gpu * s["gpus"])
+
+
+def smoothing_steps(sm: dict[str, Any], periods: int = 2, per_phase: int = 6) -> list[dict[str, Any]]:
+    """The load, the grid's draw and the stored energy through `periods` steps, `per_phase` frames a phase."""
+    stored = sm["e_store"]
+    t = 0.0
+    out = [{"i": 0, "t": t, "phase": "high", "load": sm["p_hi"], "grid": sm["grid_hi"], "stored": stored}]
+    i = 0
+    for _ in range(periods):
+        for phase in ("high", "low"):
+            dt = (sm["t_hi"] if phase == "high" else sm["t_lo"]) / per_phase
+            for _k in range(per_phase):
+                i += 1
+                t = t + dt
+                if phase == "high":
+                    stored = stored - (sm["p_hi"] - sm["grid_hi"]) * dt
+                    out.append({"i": i, "t": t, "phase": phase, "load": sm["p_hi"], "grid": sm["grid_hi"], "stored": stored})
+                else:
+                    stored = stored + (sm["grid_lo"] - sm["p_lo"]) * dt
+                    out.append({"i": i, "t": t, "phase": phase, "load": sm["p_lo"], "grid": sm["grid_lo"], "stored": stored})
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Chapter 7: cooling
+# ---------------------------------------------------------------------------
+
+CFM_PER_M3S = 60 / (0.3048 * 0.3048 * 0.3048)  # cubic feet per minute in one cubic metre per second (exact foot)
+
+
+def water_cp() -> float:
+    """Specific heat of liquid water at 298.15 K, J/(kg K): NIST's Shomate equation, per mole, over molar mass."""
+    c = PHYS["shomate"]
+    t = c["T"] / 1000
+    cp_mol = c["A"] + c["B"] * t + c["C"] * t * t + c["D"] * t * t * t + c["E"] / (t * t)
+    return cp_mol / c["molar_mass_g"] * 1000
+
+
+def air_cp() -> float:
+    """Specific heat of air at constant pressure, J/(kg K): gamma R / (gamma - 1)."""
+    f = PHYS["fields"]
+    g = f["air_gamma"]["v"]
+    return g * f["air_r"]["v"] / (g - 1)
+
+
+def heat_flow(q_w: float, dt_liquid: float, dt_air: float) -> dict[str, Any]:
+    """What carries q_w of heat: water warming by dt_liquid, or air warming by dt_air (Q = m cp dT)."""
+    f = PHYS["fields"]
+    cw = water_cp()
+    ca = air_cp()
+    kg_s = q_w / (cw * dt_liquid)
+    l_s = kg_s / f["water_kg_per_l"]["v"]
+    air_m3s = q_w / (f["air_density"]["v"] * ca * dt_air)
+    return {
+        "q_w": q_w,
+        "water_kg_s": kg_s,
+        "water_l_min": l_s * 60,
+        "air_m3_s": air_m3s,
+        "air_cfm": air_m3s * CFM_PER_M3S,
+        "vol_ratio": air_m3s / (l_s / 1000),
+    }
+
+
+def cooling_loop(q_w: float, liquid_frac: float, t_fac: float, dt: float, sid: str = "gb200-nvl72") -> dict[str, Any]:
+    """
+    The rack's liquid loop: the CDU's exchanger delivers coolant `approach` kelvin above the facility water, the
+    cold plates warm it by dt, and the flow is whatever carries the liquid-cooled share of the heat.
+    """
+    s = system(sid)
+    c = facility("cooling")
+    q_liq = q_w * liquid_frac
+    t_sup = t_fac + c["cdu_approach_k"]
+    t_ret = t_sup + dt
+    kg_s = q_liq / (water_cp() * dt)
+    return {
+        "q_w": q_w,
+        "q_liquid": q_liq,
+        "q_air": q_w - q_liq,
+        "t_fac": t_fac,
+        "t_fac_ret": t_fac + dt,
+        "t_sup": t_sup,
+        "t_ret": t_ret,
+        "kg_s": kg_s,
+        "l_min": kg_s / PHYS["fields"]["water_kg_per_l"]["v"] * 60,
+        "per_tray_kg_s": kg_s / s["compute_trays"],
+        "racks_per_cdu": math.floor(c["cdu_w"] / q_liq),
+    }
+
+
+LOOP_STEPS = 24  # frames round the loop
+LOOP_PARCELS = 8  # coolant parcels drawn, evenly spaced
+SEGMENTS = ("supply", "cold plates", "return", "CDU")
+
+
+def loop_temp(loop: dict[str, Any], k: int) -> float:
+    """Coolant temperature at position k of LOOP_STEPS: flat in the manifolds, linear across plates and exchanger."""
+    seg = k // (LOOP_STEPS // 4)
+    x = (k % (LOOP_STEPS // 4)) / (LOOP_STEPS // 4)
+    if seg == 0:
+        return loop["t_sup"]
+    if seg == 1:
+        return loop["t_sup"] + (loop["t_ret"] - loop["t_sup"]) * x
+    if seg == 2:
+        return loop["t_ret"]
+    return loop["t_ret"] - (loop["t_ret"] - loop["t_sup"]) * x
+
+
+def loop_steps(loop: dict[str, Any]) -> list[dict[str, Any]]:
+    """Each frame: every parcel's position round the loop, its segment and its temperature."""
+    gap = LOOP_STEPS // LOOP_PARCELS
+    out = []
+    for i in range(LOOP_STEPS):
+        parcels = []
+        for j in range(LOOP_PARCELS):
+            k = (i + j * gap) % LOOP_STEPS
+            parcels.append({"k": k, "seg": SEGMENTS[k // (LOOP_STEPS // 4)], "temp": loop_temp(loop, k)})
+        out.append({"i": i, "parcels": parcels})
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Chapter 9: training clusters
+# ---------------------------------------------------------------------------
+
+# Llama 3 405B pre-training (arXiv 2407.21783): the published layout and reliability record.
+LLAMA3_RUN: dict[str, dict[str, Any]] = {
+    "gpus": _f(16384, "spec", "llama3", "Table 4: 16,384 GPUs, TP 8, CP 1, PP 16, DP 128 (H100, eight per server)"),
+    "tp": _f(8, "spec", "llama3", "Table 4"),
+    "pp": _f(16, "spec", "llama3", "Table 4"),
+    "dp": _f(128, "spec", "llama3", "Table 4"),
+    "days": _f(54, "spec", "llama3", "section 3.3.4: 'a 54-day snapshot period of pre-training'"),
+    "unexpected": _f(419, "spec", "llama3", "section 3.3.4: '419 were unexpected interruptions' (of 466)"),
+    "server_gpus": _f(8, "spec", "llama3", "'Each server is equipped with eight GPUs ... connected via NVLink'"),
+}
+
+
+def failure_rate() -> float:
+    """Unexpected interruptions per GPU-hour in the Llama 3 run (all causes, as one rate)."""
+    r = LLAMA3_RUN
+    return r["unexpected"]["v"] / (r["gpus"]["v"] * r["days"]["v"] * 24)
+
+
+def checkpoint(n_gpus: int, save_s: float) -> dict[str, Any]:
+    """
+    Young (1974): with a mean time between failures M and a checkpoint that takes save_s, the interval that
+    minimises lost time is about sqrt(2 save_s M); the fraction lost is about save_s / tau + tau / (2 M).
+    """
+    lam = failure_rate() / 3600
+    mtbf = 1 / (lam * n_gpus)
+    tau = math.sqrt(2 * save_s * mtbf)
+    return {
+        "gpus": n_gpus,
+        "save_s": save_s,
+        "mtbf_s": mtbf,
+        "per_day": 86400 / mtbf,
+        "tau_s": tau,
+        "waste": save_s / tau + tau / (2 * mtbf),
+    }
+
+
+def layout_rank(d: int, p: int, t: int, pp: int, tp: int) -> int:
+    """A GPU's rank: tensor-parallel innermost, then pipeline stage, then data-parallel replica (Llama 3's order)."""
+    return (d * pp + p) * tp + t
+
+
+def training_layout(tp: int, pp: int, dp: int, domain: int = 72) -> dict[str, Any]:
+    """Where each kind of parallel traffic runs when ranks fill NVLink domains of `domain` GPUs in order."""
+    n = tp * pp * dp
+    tp_in = 0
+    for d in range(dp):
+        for p in range(pp):
+            racks = {layout_rank(d, p, t, pp, tp) // domain for t in range(tp)}
+            tp_in += 1 if len(racks) == 1 else 0
+    pp_net = 0
+    for d in range(dp):
+        for p in range(pp - 1):
+            cross = any(layout_rank(d, p, t, pp, tp) // domain != layout_rank(d, p + 1, t, pp, tp) // domain for t in range(tp))
+            pp_net += 1 if cross else 0
+    dp_net = 0
+    for p in range(pp):
+        for t in range(tp):
+            racks = {layout_rank(d, p, t, pp, tp) // domain for d in range(dp)}
+            dp_net += 1 if len(racks) > 1 else 0
+    return {
+        "tp": tp,
+        "pp": pp,
+        "dp": dp,
+        "gpus": n,
+        "domain": domain,
+        "domains": (n + domain - 1) // domain,
+        "tp_groups": dp * pp,
+        "tp_inside": tp_in,
+        "pp_hops": dp * (pp - 1),
+        "pp_net": pp_net,
+        "dp_groups": pp * tp,
+        "dp_net": dp_net,
+    }
+
+
+def layout_steps(tp: int, pp: int, dp: int, domain: int = 72) -> list[dict[str, Any]]:
+    """One frame per tensor-parallel group placed (replica by replica, stage by stage)."""
+    out = []
+    i = 0
+    for d in range(dp):
+        for p in range(pp):
+            ranks = [layout_rank(d, p, t, pp, tp) for t in range(tp)]
+            if p == 0:
+                link = None
+            else:
+                prev = [layout_rank(d, p - 1, t, pp, tp) for t in range(tp)]
+                link = "net" if any(a // domain != b // domain for a, b in zip(prev, ranks)) else "nvlink"
+            out.append({"i": i, "d": d, "p": p, "first": ranks[0], "last": ranks[-1],
+                        "domain": ranks[0] // domain, "split": ranks[0] // domain != ranks[-1] // domain, "link": link})
+            i += 1
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Chapter 10: other designs (a torus against a switch)
+# ---------------------------------------------------------------------------
+
+
+def torus(k: int, n: int = 3) -> dict[str, Any]:
+    """A k-ary n-cube with wrap-around links (k even): size, hops and the links a bisection cuts."""
+    nodes = k**n
+    ring_sum = (k * k) // 4  # sum of the distances from one node of a k-ring to all of its nodes
+    total = n * k ** (n - 1) * ring_sum
+    return {
+        "k": k,
+        "n": n,
+        "nodes": nodes,
+        "links_per_node": 2 * n,
+        "mean_hops": total / (nodes - 1),
+        "diameter": n * (k // 2),
+        "bisection_links": 2 * k ** (n - 1),
+    }
+
+
+def torus_shells(k: int, n: int = 3) -> list[int]:
+    """How many nodes lie at each hop distance from one node (dimension-order routing, wrap-around)."""
+    counts = [0] * (n * (k // 2) + 1)
+    for idx in range(k**n):
+        d = 0
+        x = idx
+        for _ in range(n):
+            c = x % k
+            d += min(c, k - c)
+            x //= k
+        counts[d] += 1
+    return counts
+
+
+def torus_steps(k: int, n: int = 3) -> list[dict[str, Any]]:
+    """Frame d: the nodes first reached at hop d, and how many have been reached so far."""
+    shells = torus_shells(k, n)
+    out = []
+    reached = 0
+    for d, c in enumerate(shells):
+        reached += c
+        out.append({"d": d, "new": c, "reached": reached})
+    return out
+
+
+def a2a_torus(k: int, n: int, size: float, link_dir: float) -> float:
+    """All-to-all lower bound on a torus: each half sends N size / 4 bytes across the bisection, each way."""
+    t = torus(k, n)
+    return t["nodes"] * size / (4 * t["bisection_links"] * link_dir)
+
+
+def tpu_compare(size: float) -> dict[str, Any]:
+    """A TPU v5p cube (4x4x4 torus) against a GB200 NVL72 rack (one switch hop), all-to-all of `size` per chip."""
+    o = other("tpu-v5p")
+    t = torus(4, 3)
+    link_dir = o["scaleup_bidir"] / t["links_per_node"] / 2  # derived: the chip's ICI split equally over six links
+    nvl = per_dir(gpu("b200")["nvlink_bidir"])
+    return {
+        "size": size,
+        "cube": t["nodes"],
+        "link_dir": link_dir,
+        "chip_dir": per_dir(o["scaleup_bidir"]),
+        "t_torus": a2a_torus(4, 3, size, link_dir),
+        "t_nvl72": alltoall_time(72, size, nvl),
+        "nvl_dir": nvl,
+    }
+
+
+def scaleup_per_chip(oid: str) -> float | None:
+    """A design's stated scale-up bandwidth per chip (both directions); total over chips where only a total is stated."""
+    o = other(oid)
+    if o.get("scaleup_bidir") is not None:
+        return o["scaleup_bidir"]
+    if o.get("scaleup_total") is not None:
+        return o["scaleup_total"] / o["chips"]
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Chapter 11: cost (every price illustrative)
+# ---------------------------------------------------------------------------
+
+COST_ILLUSTRATIVE: dict[str, dict[str, Any]] = {
+    "capex_rack_usd": _f(3.5e6, "illustrative", "", "a round number for one 72-GPU rack with its share of network and facility; not a price"),
+    "years": _f(4, "illustrative", "", "straight-line write-off period"),
+    "pue": _f(1.2, "illustrative", "", "facility power over IT power (cooling and conversion overhead)"),
+    "usd_per_kwh": _f(0.10, "illustrative", "", "electricity price"),
+    "utilisation": _f(0.7, "illustrative", "", "fraction of the year the rack serves at the simulated load"),
+}
+HOURS_PER_YEAR = 8766  # 365.25 days
+
+
+def tco(capex: float, years: int, rack_w: float, pue: float, usd_per_kwh: float, tok_s: float, util: float) -> dict[str, Any]:
+    """Cost per million output tokens: capex written off over `years` plus energy at the rack's power, all year."""
+    energy_kwh = rack_w / 1000 * pue * HOURS_PER_YEAR
+    energy_usd = energy_kwh * usd_per_kwh
+    capex_yr = capex / years
+    tokens_yr = tok_s * util * HOURS_PER_YEAR * 3600
+    total = capex_yr + energy_usd
+    return {
+        "capex_yr": capex_yr,
+        "energy_usd_yr": energy_usd,
+        "energy_kwh_yr": energy_kwh,
+        "tokens_yr": tokens_yr,
+        "usd_per_mtok": total / tokens_yr * 1e6,
+        "capex_share": capex_yr / total,
+        "tok_s_per_mw": tok_s * util / (rack_w * pue / 1e6),
+    }
+
+
+def tco_steps(capex: float, years: int, rack_w: float, pue: float, usd_per_kwh: float, tok_s: float, util: float) -> list[dict[str, Any]]:
+    """Quarter by quarter: what has been written off, spent on energy and served so far."""
+    c = tco(capex, years, rack_w, pue, usd_per_kwh, tok_s, util)
+    out = []
+    for q in range(years * 4 + 1):
+        f = q / 4
+        cap = c["capex_yr"] * f
+        en = c["energy_usd_yr"] * f
+        tok = c["tokens_yr"] * f
+        out.append({"q": q, "capex": cap, "energy": en, "tokens": tok, "usd_per_mtok": (cap + en) / tok * 1e6 if q > 0 else None})
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Validation band: the model against published figures
 # ---------------------------------------------------------------------------
 
@@ -1052,6 +1731,21 @@ def validation() -> list[dict[str, Any]]:
         {"id": "q3450-two-tier", "what": "two-tier non-blocking fat tree of 144-port switches (endpoints)",
          "model": fat_tree(10000, 144)["two_tier_max"], "published": 10000, "src": "photonics-page",
          "note": "published as 'over 10,000 GPUs'"},
+    ]
+    h, t2, t3 = other("helios"), other("trn2-ultra"), other("trn3-ultra")
+    rows += [
+        {"id": "helios-hbm", "what": "AMD Helios total HBM (B): 72 x per-GPU", "model": h["chips"] * h["hbm_bytes"],
+         "published": h["hbm_total"], "src": "helios-blog"},
+        {"id": "helios-hbm-bw", "what": "AMD Helios total HBM bandwidth (B/s): 72 x per-GPU", "model": h["chips"] * h["hbm_bw"],
+         "published": h["hbm_bw_total"], "src": "helios-blog"},
+        {"id": "trn2-fp8", "what": "Trn2 UltraServer FP8 (FLOP/s): 4 x a 16-chip instance",
+         "model": t2["chips"] // t2["instance_chips"] * t2["instance_fp8"], "published": t2["fp8_total"], "src": "trn2-page"},
+        {"id": "trn2-hbm-bw", "what": "Trn2 UltraServer HBM bandwidth (B/s): 4 x a 16-chip instance",
+         "model": t2["chips"] // t2["instance_chips"] * t2["instance_hbm_bw"], "published": t2["hbm_bw_total"], "src": "trn2-page"},
+        {"id": "trn3-hbm", "what": "Trainium3 UltraServer HBM (B): 144 x per-chip", "model": t3["chips"] * t3["hbm_bytes"],
+         "published": t3["hbm_total"], "src": "trainium-page"},
+        {"id": "trn3-hbm-bw", "what": "Trainium3 UltraServer HBM bandwidth (B/s): 144 x per-chip", "model": t3["chips"] * t3["hbm_bw"],
+         "published": t3["hbm_bw_total"], "src": "trainium-page"},
     ]
     for row in SUPERPOD_TABLE3:
         m = rail_aligned(row["sus"])

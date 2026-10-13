@@ -29,6 +29,7 @@
     "screenshots": "tsx scripts/capture-screenshots.ts",
     "animations": "tsx scripts/capture-animations.ts",
     "smoke": "tsx scripts/smoke-check.ts",
+    "vendor": "tsx scripts/vendor-sim.ts",
     "fixtures:check": "python3 scripts/make_fixtures.py --check"
   },
   "dependencies": {

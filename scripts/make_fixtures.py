@@ -37,6 +37,30 @@ TREE_K = (64, 128, 144, 512)
 TREE_STEPS = [(n, k, o) for n in (576, 2048, 9216, 32768) for k in (64, 144) for o in (1, 2)]
 HALLS = (20e6, 100e6, 300e6)
 W_PER_TRANSCEIVER = (5.0, 10.0, 15.0, 20.0, 30.0)
+# chapters 6-11 (the widgets' controls stay inside these grids)
+HALF_PERIODS = (0.05, 0.25, 1.0)
+J_PER_GPU = (0.0, 65.0, 650.0)
+RACK_W = (120e3, 135e3, 1e6)
+LIQUID_FRAC = (0.8, 0.9, 1.0)
+T_FAC = (20.0, 30.0, 40.0)
+DT_LIQUID = (5.0, 10.0, 15.0)
+DT_AIR = (10.0, 15.0, 20.0)
+LAYOUTS = [(t, p, d) for t in (4, 8) for p in (2, 4) for d in (2, 4)] + [(8, 16, 128)]
+CKPT_GPUS = (1024, 4096, 16384, 100000)
+CKPT_SAVE = (10.0, 60.0, 300.0)
+TORUS_K = (2, 4, 6, 8)
+CAPEX = (2e6, 3.5e6, 5e6)
+KWH = (0.05, 0.10, 0.15)
+UTIL = (0.5, 0.7, 0.9)
+DISAGG = json.loads((ROOT / "src" / "data" / "disagg.json").read_text())
+
+
+def cost_inputs() -> dict:
+    """The illustrative cost inputs, and the rack's sustained output from chapter 8's recorded run."""
+    c = {k: f["v"] for k, f in r.COST_ILLUSTRATIVE.items()}
+    c["rack_w"] = r.system("gb200-nvl72")["rack_power_w"]
+    c["tok_s"] = DISAGG["offeredTokS"]
+    return c
 
 
 def site_data() -> dict:
@@ -53,6 +77,17 @@ def site_data() -> dict:
         "formats": r.FORMATS,
         "ladderPayload": r.LADDER_PAYLOAD,
         "hallW": r.HALL_W,
+        "facility": [r.FACILITY[f] for f in r.FACILITY],
+        "phys": r.PHYS,
+        "others": [r.OTHERS[o] for o in r.OTHER_ORDER],
+        "llama3Run": r.LLAMA3_RUN,
+        "cost": r.COST_ILLUSTRATIVE,
+        "smoothLow": r.SMOOTH_LOW,
+        "busbarCases": [list(c) for c in r.BUSBAR_CASES],
+        "loopSteps": r.LOOP_STEPS,
+        "loopParcels": r.LOOP_PARCELS,
+        "segments": list(r.SEGMENTS),
+        "hoursPerYear": r.HOURS_PER_YEAR,
     }
 
 
@@ -108,6 +143,63 @@ def fixtures() -> dict:
     out["treeSteps"] = [{"n": n, "k": k, "oversub": o, "out": r.tree_steps(n, k, o)} for n, k, o in TREE_STEPS]
     out["railAligned"] = [r.rail_aligned(s) for s in range(1, 17)]
     out["validation"] = r.validation()
+    # chapter 6: power
+    out["facility"] = {f: r.facility(f) for f in r.FACILITY}
+    out["powerChain"] = r.power_chain()
+    out["busbar"] = [{"p": p, "v": v, "out": r.busbar(p, v)} for p, v in r.BUSBAR_CASES]
+    out["smoothing"] = [
+        {"half": h, "j": j, "out": r.rack_smoothing(h, j), "steps": r.smoothing_steps(r.rack_smoothing(h, j))}
+        for h in HALF_PERIODS
+        for j in J_PER_GPU
+    ]
+    # chapter 7: cooling
+    out["waterCp"] = r.water_cp()
+    out["airCp"] = r.air_cp()
+    out["heatFlow"] = [
+        {"q": q, "dl": dl, "da": da, "out": r.heat_flow(q, dl, da)} for q in RACK_W for dl in DT_LIQUID for da in DT_AIR
+    ]
+    out["coolingLoop"] = [
+        {"q": q, "frac": f, "tfac": t, "dt": d, "out": r.cooling_loop(q, f, t, d)}
+        for q in RACK_W
+        for f in LIQUID_FRAC
+        for t in T_FAC
+        for d in DT_LIQUID
+    ]
+    out["loopSteps"] = [
+        {"q": q, "frac": 0.9, "tfac": t, "dt": d, "out": r.loop_steps(r.cooling_loop(q, 0.9, t, d))}
+        for q in (120e3, 1e6)
+        for t in (30.0, 40.0)
+        for d in (5.0, 10.0)
+    ]
+    # chapter 9: training
+    out["failureRate"] = r.failure_rate()
+    out["checkpoint"] = [{"n": n, "save": z, "out": r.checkpoint(n, z)} for n in CKPT_GPUS for z in CKPT_SAVE]
+    out["layout"] = [
+        {"tp": t, "pp": p, "dp": d, "domain": m, "out": r.training_layout(t, p, d, m)} for t, p, d in LAYOUTS for m in (8, 72)
+    ]
+    out["layoutSteps"] = [
+        {"tp": t, "pp": p, "dp": d, "domain": m, "out": r.layout_steps(t, p, d, m)} for t, p, d in LAYOUTS[:-1] for m in (8, 72)
+    ]
+    # chapter 10: other designs
+    out["others"] = {o: r.other(o) for o in r.OTHER_ORDER}
+    out["torus"] = [{"k": k, "out": r.torus(k), "shells": r.torus_shells(k), "steps": r.torus_steps(k)} for k in TORUS_K]
+    out["tpuCompare"] = [r.tpu_compare(z) for z in SIZES]
+    out["scaleup"] = {o: r.scaleup_per_chip(o) for o in r.OTHER_ORDER}
+    # chapter 11: cost
+    c = cost_inputs()
+    out["costInputs"] = c
+    out["tco"] = [
+        {"capex": k, "kwh": e, "util": u, "out": r.tco(k, c["years"], c["rack_w"], c["pue"], e, c["tok_s"], u)}
+        for k in CAPEX
+        for e in KWH
+        for u in UTIL
+    ]
+    out["tcoSteps"] = [
+        {"capex": k, "kwh": e, "util": u, "out": r.tco_steps(k, c["years"], c["rack_w"], c["pue"], e, c["tok_s"], u)}
+        for k in CAPEX
+        for e in (0.10,)
+        for u in (0.7,)
+    ]
     return out
 
 
@@ -201,6 +293,49 @@ def results_md() -> str:
     L.append("| --- | --- | --- | --- | --- |")
     L.extend(_field_rows(r.SUPERPOD_RULES))
     L.append("")
+    L.append("## Power and cooling records")
+    for fid, rec in r.FACILITY.items():
+        L.append("")
+        L.append(f"### {rec['name']} (`{fid}`)")
+        L.append("")
+        L.append("| field | value | status | source | where |")
+        L.append("| --- | --- | --- | --- | --- |")
+        L.extend(_field_rows(rec["fields"]))
+    L.append("")
+    L.append("### Physical properties")
+    L.append("")
+    L.append("| field | value | status | source | where |")
+    L.append("| --- | --- | --- | --- | --- |")
+    L.extend(_field_rows(r.PHYS["fields"]))
+    sh = r.PHYS["shomate"]
+    L.append("")
+    L.append(f"Water, NIST Shomate coefficients ({_src('nist-water')}): " + ", ".join(f"{k} = {v}" for k, v in sh.items()) + ".")
+    L.append("")
+    L.append("## Other rack- and pod-scale designs")
+    for oid in r.OTHER_ORDER:
+        rec = r.OTHERS[oid]
+        L.append("")
+        L.append(f"### {rec['name']} (`{oid}`), availability: {rec['avail']['v']}")
+        L.append("")
+        L.append(f"Availability: {rec['avail']['ref']} ({_src(rec['avail']['src'])}).")
+        L.append("")
+        L.append("| field | value | status | source | where |")
+        L.append("| --- | --- | --- | --- | --- |")
+        L.extend(_field_rows(rec["fields"]))
+    L.append("")
+    L.append("## Llama 3 405B pre-training (chapter 9)")
+    L.append("")
+    L.append("| field | value | status | source | where |")
+    L.append("| --- | --- | --- | --- | --- |")
+    L.extend(_field_rows(r.LLAMA3_RUN))
+    L.append("")
+    L.append("## Illustrative cost inputs (chapter 11; not prices)")
+    L.append("")
+    L.append("| field | value | status | where |")
+    L.append("| --- | --- | --- | --- |")
+    for k, f in r.COST_ILLUSTRATIVE.items():
+        L.append(f"| `{k}` | {_num(f['v'])} | {f['st']} | {f['ref']} |")
+    L.append("")
     L.append("## Quoted claims (shown, attributed, never model inputs)")
     L.append("")
     for cid, c in r.CLAIMS.items():
@@ -280,6 +415,119 @@ def results_md() -> str:
         m = r.rail_aligned(row["sus"])
         g = r.fat_tree(m["gpus"], 64)
         L.append(f"| {row['sus']} | {m['gpus']:,} | {m['leaves'] + m['spines'] + m['cores']:,} | {g['switches']:,} |")
+    L.append("")
+    L.append("### Chapter 6: power (GB200 NVL72)")
+    L.append("")
+    for k, v in r.power_chain().items():
+        L.append(f"- `{k}`: {_num(v)}")
+    L.append("")
+    L.append("Bus current, resistive loss in the same conductor (relative to 54 V) and copper at the same current density as NVIDIA's 1 MW / 54 V figure (derived):")
+    L.append("")
+    L.append("| rack power (W) | bus (V) | current (A) | loss vs 54 V | copper (kg) |")
+    L.append("| --- | --- | --- | --- | --- |")
+    for pw, v in r.BUSBAR_CASES:
+        b = r.busbar(pw, v)
+        L.append(f"| {_num(pw)} | {_num(v)} | {b['amps']:.6g} | {b['loss_rel']:.4g} | {b['copper_kg']:.4g} |")
+    L.append("")
+    L.append(f"Power smoothing: one rack, high phase at its stated power, low phase at {r.SMOOTH_LOW:g} of it (illustrative), equal halves:")
+    L.append("")
+    L.append("| half-period (s) | storage (J per GPU) | grid, high phase (W) | grid, low phase (W) | peak cut | grid swing (W) |")
+    L.append("| --- | --- | --- | --- | --- | --- |")
+    for h in HALF_PERIODS:
+        for j in J_PER_GPU:
+            m = r.rack_smoothing(h, j)
+            L.append(f"| {h:g} | {j:g} | {m['grid_hi']:.6g} | {m['grid_lo']:.6g} | {m['peak_cut']:.4g} | {m['swing']:.6g} |")
+    L.append("")
+    L.append("### Chapter 7: cooling")
+    L.append("")
+    L.append(f"- water c_p (NIST Shomate, 298.15 K): {r.water_cp():.6g} J/(kg K)")
+    L.append(f"- air c_p (gamma R / (gamma - 1)): {r.air_cp():.6g} J/(kg K)")
+    L.append("")
+    L.append("| heat (W) | water dT (K) | water (kg/s) | water (L/min) | air dT (K) | air (m3/s) | air (CFM) | air volume / water volume |")
+    L.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
+    for q in RACK_W:
+        h = r.heat_flow(q, 10.0, 15.0)
+        L.append(f"| {_num(q)} | 10 | {h['water_kg_s']:.4g} | {h['water_l_min']:.4g} | 15 | {h['air_m3_s']:.4g} | {h['air_cfm']:.5g} | {h['vol_ratio']:.4g} |")
+    L.append("")
+    L.append("Liquid loop of a 120 kW rack, 90% of the heat to liquid (illustrative), CDU approach 5 K:")
+    L.append("")
+    L.append("| facility supply (°C) | coolant rise (K) | coolant supply (°C) | coolant return (°C) | flow (L/min) | per tray (kg/s) | racks per 2 MW CDU |")
+    L.append("| --- | --- | --- | --- | --- | --- | --- |")
+    for t in T_FAC:
+        for d in DT_LIQUID:
+            c = r.cooling_loop(120e3, 0.9, t, d)
+            L.append(f"| {t:g} | {d:g} | {c['t_sup']:g} | {c['t_ret']:g} | {c['l_min']:.4g} | {c['per_tray_kg_s']:.4g} | {c['racks_per_cdu']} |")
+    L.append("")
+    L.append("### Chapter 8: disaggregated inference on one rack (Disaggregated_Inference_Sim)")
+    L.append("")
+    D = DISAGG
+    L.append(
+        f"Simulator {D['simulator']} at `{D['commit'][:7]}` (vendored; `scripts/disagg_reference.py`). {D['gpus']} GPUs of "
+        f"the simulator's B200 preset as {D['instances']} instances of TP {D['tp']}, serving {D['modelName']}; "
+        f"{D['n']:,} Poisson requests at {D['rate']:g}/s (seed {D['seed']}), prompts mean {D['promptMean']:g} (cv "
+        f"{D['promptCv']:g}), outputs mean {D['outputMean']:g} (cv {D['outputCv']:g}); SLOs TTFT {D['ttftSlo']:g} s, "
+        f"TPOT {D['tpotSlo'] * 1e3:g} ms. Offered output: {D['offeredTokS']:.6g} tokens/s. Power and energy use the "
+        "simulator's illustrative coefficients (GPU power only)."
+    )
+    L.append("")
+    L.append("| prefill:decode | KV link | parts | TTFT p99 (s) | TPOT p50 (ms) | TPOT p99 (ms) | SLO met | hand-off mean (ms) | J per token | tokens/s per MW (GPU power) |")
+    L.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+    for sp in D["splits"]:
+        sk = f"{sp[0]}-{sp[1]}"
+        for lk in D["linkOrder"]:
+            for part in D["parts"]:
+                x = D["runs"][sk][lk][part]
+                L.append(
+                    f"| {sp[0]}:{sp[1]} | {lk} | {part} | {x['ttft_p99']:.4g} | {x['tpot_p50'] * 1e3:.4g} | {x['tpot_p99'] * 1e3:.4g} | "
+                    f"{x['slo']:.3f} | {x['handoff_mean'] * 1e3:.4g} | {x['j_per_tok']:.4g} | {x['tok_s_per_mw']:.6g} |"
+                )
+    L.append("")
+    L.append("### Chapter 9: training clusters")
+    L.append("")
+    L.append(f"Unexpected interruptions per GPU-hour in the Llama 3 405B run: {r.failure_rate():.6g}.")
+    L.append("")
+    L.append("| GPUs | checkpoint save (s) | mean time between interruptions (s) | interruptions a day | Young interval (s) | time lost |")
+    L.append("| --- | --- | --- | --- | --- | --- |")
+    for n in CKPT_GPUS:
+        for z in CKPT_SAVE:
+            c = r.checkpoint(n, z)
+            L.append(f"| {n:,} | {z:g} | {c['mtbf_s']:.6g} | {c['per_day']:.4g} | {c['tau_s']:.6g} | {c['waste']:.4g} |")
+    L.append("")
+    L.append("| TP x PP x DP | NVLink domain | domains | TP groups inside one domain | PP hops over the network | DP groups over the network |")
+    L.append("| --- | --- | --- | --- | --- | --- |")
+    for t, pp_, d in LAYOUTS:
+        for m in (8, 72):
+            x = r.training_layout(t, pp_, d, m)
+            L.append(f"| {t} x {pp_} x {d} | {m} | {x['domains']:,} | {x['tp_inside']:,} of {x['tp_groups']:,} | {x['pp_net']:,} of {x['pp_hops']:,} | {x['dp_net']} of {x['dp_groups']} |")
+    L.append("")
+    L.append("### Chapter 10: a torus against a switch")
+    L.append("")
+    L.append("| k (k x k x k torus) | chips | mean hops | diameter | bisection links | nodes at each hop |")
+    L.append("| --- | --- | --- | --- | --- | --- |")
+    for k in TORUS_K:
+        t = r.torus(k)
+        L.append(f"| {k} | {t['nodes']} | {t['mean_hops']:.6g} | {t['diameter']} | {t['bisection_links']} | {', '.join(map(str, r.torus_shells(k)))} |")
+    L.append("")
+    L.append("All-to-all per chip: a TPU v5p cube (4 x 4 x 4, bisection bound, the chip's ICI split equally over six links) against a GB200 NVL72 rack:")
+    L.append("")
+    L.append("| size (B) | torus (s) | NVL72 (s) | ratio |")
+    L.append("| --- | --- | --- | --- |")
+    for z in SIZES:
+        c = r.tpu_compare(z)
+        L.append(f"| {_num(z)} | {c['t_torus']:.6g} | {c['t_nvl72']:.6g} | {c['t_torus'] / c['t_nvl72']:.4g} |")
+    L.append("")
+    L.append("### Chapter 11: cost (illustrative prices)")
+    L.append("")
+    ci = cost_inputs()
+    L.append(", ".join(f"`{k}` = {_num(v)}" for k, v in ci.items()))
+    L.append("")
+    L.append("| capex per rack ($) | $ per kWh | utilisation | $ per million tokens | capex share | tokens/s per MW (facility) |")
+    L.append("| --- | --- | --- | --- | --- | --- |")
+    for k in CAPEX:
+        for e in KWH:
+            for u in UTIL:
+                x = r.tco(k, ci["years"], ci["rack_w"], ci["pue"], e, ci["tok_s"], u)
+                L.append(f"| {_num(k)} | {e:g} | {u:g} | {x['usd_per_mtok']:.4g} | {x['capex_share']:.4g} | {x['tok_s_per_mw']:.6g} |")
     L.append("")
     L.append("## Validation band")
     L.append("")
