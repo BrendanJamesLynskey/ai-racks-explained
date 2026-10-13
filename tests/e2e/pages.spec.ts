@@ -123,7 +123,12 @@ test("the site switch: four tracks, and the button and header say where you are"
         "Inside a matrix engine",
         "https://systolic-arrays-explained.vercel.app",
       ],
-      ["racks", "Racks", "GPUs, networks, power, cooling at scale", ""],
+      [
+        "racks",
+        "Racks",
+        "GPUs, networks, power, cooling at scale",
+        "https://ai-racks-explained.vercel.app",
+      ],
       [
         "inference",
         "Serving",
@@ -206,10 +211,9 @@ test("the site switch: four tracks, and the button and header say where you are"
         name: /^(Foundations|Hardware|Inference|Agents)\b/,
       }),
     ).toHaveCount(0);
-    // this site is listed "(soon)" until brief 31C makes it live in the
-    // shared switch, so nothing is highlighted yet
-    await expect(site("racks")).toContainText("(soon)");
-    await expect(panel.locator("[aria-current]")).toHaveCount(0);
+    // this site is highlighted
+    await expect(site("racks")).toHaveAttribute("aria-current", "true");
+    await expect(panel.locator("[aria-current]")).toHaveCount(1);
     await expect(panel.getByText("Compute in transit")).toHaveCount(0);
     // every entry is a 44 px touch target
     expect(
