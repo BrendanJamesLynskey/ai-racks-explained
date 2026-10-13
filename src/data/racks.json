@@ -1,0 +1,1185 @@
+{
+ "accessed": "2026-10-13",
+ "claims": {
+  "cpo-power": {
+   "src": "cpo-blog",
+   "text": "co-packaged optics: '3.5x power efficiency' compared with pluggable transceivers"
+  },
+  "nvl72-one-gpu": {
+   "src": "gb200-blog",
+   "text": "the 72 GPUs of an NVL72 'communicate as one' (all-to-all at 1.8 TB/s per GPU)"
+  },
+  "q3450-scale": {
+   "src": "photonics-page",
+   "text": "'connecting over 10,000 GPUs in a non-blocking, two-level fat-tree topology'"
+  }
+ },
+ "formats": {
+  "bf16": 2.0,
+  "fp4": 0.5,
+  "fp8": 1.0
+ },
+ "gpus": [
+  {
+   "arch": "Hopper",
+   "avail": {
+    "ref": "product page with specifications",
+    "src": "h100-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "dense_bf16": {
+     "ref": "BF16 Tensor Core 1,979 teraFLOPS is with sparsity; dense is half",
+     "src": "h100-page",
+     "st": "derived",
+     "v": 989500000000000.0
+    },
+    "dense_fp8": {
+     "ref": "FP8 Tensor Core 3,958 teraFLOPS is with sparsity; dense is half",
+     "src": "h100-page",
+     "st": "derived",
+     "v": 1979000000000000.0
+    },
+    "dies": {
+     "ref": "Table 2: dies per GPU 1",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 1
+    },
+    "hbm_bw": {
+     "ref": "GPU Memory Bandwidth 3.35TB/s",
+     "src": "h100-page",
+     "st": "spec",
+     "v": 3350000000000.0
+    },
+    "hbm_bytes": {
+     "ref": "GPU Memory 80GB",
+     "src": "h100-page",
+     "st": "spec",
+     "v": 80000000000.0
+    },
+    "hbm_gen": {
+     "ref": "H100 SXM5 memory",
+     "src": "hopper-blog",
+     "st": "spec",
+     "v": "HBM3"
+    },
+    "hbm_stacks": {
+     "ref": "H100 SXM5: '80 GB HBM3, 5 HBM3 stacks, 10 512-bit memory controllers' (the full GH100 has 6 sites)",
+     "src": "hopper-blog",
+     "st": "spec",
+     "v": 5
+    },
+    "nvlink_bidir": {
+     "ref": "fourth generation: 900 GB/s per GPU",
+     "src": "nvlink-page",
+     "st": "spec",
+     "v": 900000000000.0
+    },
+    "nvlink_links": {
+     "ref": "fourth generation: maximum 18 links per GPU",
+     "src": "nvlink-page",
+     "st": "spec",
+     "v": 18
+    },
+    "pcie_bidir": {
+     "ref": "Table 1: PCIe 128 GB/s (Gen 5), bidirectional",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 128000000000.0
+    },
+    "tdp_w": {
+     "ref": "Max Thermal Design Power: up to 700W (configurable)",
+     "src": "h100-page",
+     "st": "spec",
+     "v": 700
+    },
+    "transistors": {
+     "ref": "Table 2: 80B transistors",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 80000000000.0
+    }
+   },
+   "id": "h100",
+   "name": "H100 SXM5"
+  },
+  {
+   "arch": "Hopper",
+   "avail": {
+    "ref": "product page with specifications",
+    "src": "h200-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "dense_bf16": {
+     "ref": "BF16 Tensor Core 1,979 TFLOPS is with sparsity; dense is half",
+     "src": "h200-page",
+     "st": "derived",
+     "v": 989500000000000.0
+    },
+    "dense_fp8": {
+     "ref": "FP8 Tensor Core 3,958 TFLOPS is with sparsity; dense is half",
+     "src": "h200-page",
+     "st": "derived",
+     "v": 1979000000000000.0
+    },
+    "dies": {
+     "ref": "Table 2 (Hopper): dies per GPU 1",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 1
+    },
+    "hbm_bw": {
+     "ref": "GPU Memory Bandwidth 4.8TB/s",
+     "src": "h200-page",
+     "st": "spec",
+     "v": 4800000000000.0
+    },
+    "hbm_bytes": {
+     "ref": "GPU Memory 141GB",
+     "src": "h200-page",
+     "st": "spec",
+     "v": 141000000000.0
+    },
+    "hbm_gen": {
+     "ref": "Table 2: 141 GB HBM3E (H200)",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": "HBM3E"
+    },
+    "hbm_stacks": {
+     "ref": "stack count not given in the sources used",
+     "src": "h200-page",
+     "st": "undisclosed",
+     "v": null
+    },
+    "nvlink_bidir": {
+     "ref": "Interconnect: NVIDIA NVLink 900GB/s",
+     "src": "h200-page",
+     "st": "spec",
+     "v": 900000000000.0
+    },
+    "nvlink_links": {
+     "ref": "fourth generation: maximum 18 links per GPU",
+     "src": "nvlink-page",
+     "st": "spec",
+     "v": 18
+    },
+    "pcie_bidir": {
+     "ref": "Interconnect: PCIe Gen5 128GB/s",
+     "src": "h200-page",
+     "st": "spec",
+     "v": 128000000000.0
+    },
+    "tdp_w": {
+     "ref": "Max Thermal Design Power: up to 700W (configurable)",
+     "src": "h200-page",
+     "st": "spec",
+     "v": 700
+    },
+    "transistors": {
+     "ref": "Table 2 (Hopper): 80B transistors",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 80000000000.0
+    }
+   },
+   "id": "h200",
+   "name": "H200 SXM"
+  },
+  {
+   "arch": "Blackwell",
+   "avail": {
+    "ref": "product page with specifications",
+    "src": "gb200-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "dense_bf16": {
+     "ref": "GB200 Superchip FP16/BF16 10 PFLOPS is sparse for 2 GPUs: dense per GPU = 10 / 2 / 2",
+     "src": "gb200-page",
+     "st": "derived",
+     "v": 2500000000000000.0
+    },
+    "dense_fp8": {
+     "ref": "Table 2: FP8 dense 5 petaFLOPS",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 5000000000000000.0
+    },
+    "dies": {
+     "ref": "two reticle-limited dies connected by a 10 TB/s chip-to-chip interconnect",
+     "src": "bw-arch",
+     "st": "spec",
+     "v": 2
+    },
+    "hbm_bw": {
+     "ref": "GB200 Superchip: 16 TB/s for 2 GPUs, so 8 TB/s per GPU (bwu-blog Table 2: 8 TB/s)",
+     "src": "gb200-page",
+     "st": "derived",
+     "v": 8000000000000.0
+    },
+    "hbm_bytes": {
+     "ref": "GB200 Superchip: 372 GB HBM3E for 2 GPUs, so 186 GB per GPU (Blackwell's maximum is 192 GB, bwu-blog Table 2)",
+     "src": "gb200-page",
+     "st": "derived",
+     "v": 186000000000.0
+    },
+    "hbm_gen": {
+     "ref": "GPU memory: HBM3E",
+     "src": "gb200-page",
+     "st": "spec",
+     "v": "HBM3E"
+    },
+    "hbm_stacks": {
+     "ref": "the sources used give the stack count for Blackwell Ultra (8), not for Blackwell",
+     "src": "bwu-blog",
+     "st": "undisclosed",
+     "v": null
+    },
+    "nvlink_bidir": {
+     "ref": "fifth generation: 1,800 GB/s per GPU",
+     "src": "nvlink-page",
+     "st": "spec",
+     "v": 1800000000000.0
+    },
+    "nvlink_links": {
+     "ref": "fifth generation: maximum 18 links per GPU",
+     "src": "nvlink-page",
+     "st": "spec",
+     "v": 18
+    },
+    "pcie_bidir": {
+     "ref": "Table 1: PCIe 256 GB/s (Gen 6), bidirectional",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 256000000000.0
+    },
+    "tdp_w": {
+     "ref": "Table 2: Max power (TGP) up to 1,200W",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 1200
+    },
+    "transistors": {
+     "ref": "208 billion transistors, TSMC 4NP",
+     "src": "bw-arch",
+     "st": "spec",
+     "v": 208000000000.0
+    }
+   },
+   "id": "b200",
+   "name": "Blackwell (GB200 NVL72)"
+  },
+  {
+   "arch": "Blackwell Ultra",
+   "avail": {
+    "ref": "product page with specifications",
+    "src": "gb300-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "dense_bf16": {
+     "ref": "GB300 NVL72 FP16/BF16 360 PFLOPS is sparse for 72 GPUs: dense per GPU = 360 / 72 / 2",
+     "src": "gb300-page",
+     "st": "derived",
+     "v": 2500000000000000.0
+    },
+    "dense_fp8": {
+     "ref": "Table 2: FP8 dense 5 petaFLOPS",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 5000000000000000.0
+    },
+    "dies": {
+     "ref": "Table 2: dies per GPU 2",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 2
+    },
+    "hbm_bw": {
+     "ref": "Bandwidth: 8 TB/s per GPU",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 8000000000000.0
+    },
+    "hbm_bytes": {
+     "ref": "High bandwidth memory features: max capacity 288 GB",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 288000000000.0
+    },
+    "hbm_gen": {
+     "ref": "288 GB HBM3E",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": "HBM3E"
+    },
+    "hbm_stacks": {
+     "ref": "HBM configuration: eight 12-Hi stacks, 16 x 512-bit controllers (8,192-bit total). The post's 2025-09-24 correction note mentions '12 HBM stacks'; the 8,192-bit width is eight 1,024-bit stacks",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 8
+    },
+    "nvlink_bidir": {
+     "ref": "Table 1: NVLink 1,800 GB/s, bidirectional",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 1800000000000.0
+    },
+    "nvlink_links": {
+     "ref": "fifth generation: maximum 18 links per GPU",
+     "src": "nvlink-page",
+     "st": "spec",
+     "v": 18
+    },
+    "pcie_bidir": {
+     "ref": "Table 1: PCIe 256 GB/s (Gen 6), bidirectional",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 256000000000.0
+    },
+    "tdp_w": {
+     "ref": "Table 2: Max power (TGP) up to 1,400W",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 1400
+    },
+    "transistors": {
+     "ref": "Table 2: 208B transistors",
+     "src": "bwu-blog",
+     "st": "spec",
+     "v": 208000000000.0
+    }
+   },
+   "id": "b300",
+   "name": "Blackwell Ultra (GB300 NVL72)"
+  },
+  {
+   "arch": "Rubin",
+   "avail": {
+    "ref": "NVLink 6 figures are marked 'Preliminary specifications'; the Vera Rubin NVL72 page says 'Available Now'",
+    "src": "nvlink-page",
+    "st": "spec",
+    "v": "preliminary"
+   },
+   "fields": {
+    "dense_bf16": {
+     "ref": "NVIDIA Rubin GPU: FP16/BF16 4 PFLOPS (dense)",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 4000000000000000.0
+    },
+    "dense_fp8": {
+     "ref": "NVIDIA Rubin GPU: FP8/FP6 Training 17.5 PFLOPS (dense)",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 1.75e+16
+    },
+    "dies": {
+     "ref": "not given in the sources used",
+     "src": "vr-page",
+     "st": "undisclosed",
+     "v": null
+    },
+    "hbm_bw": {
+     "ref": "NVIDIA Rubin GPU: Bandwidth 19.2 TB/s (the rack figure, 1,400 TB/s, is 1.3% more than 72 x 19.2)",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 19200000000000.0
+    },
+    "hbm_bytes": {
+     "ref": "NVIDIA Rubin GPU: GPU Memory 288 GB HBM4",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 288000000000.0
+    },
+    "hbm_gen": {
+     "ref": "288 GB HBM4",
+     "src": "vr-page",
+     "st": "spec",
+     "v": "HBM4"
+    },
+    "hbm_stacks": {
+     "ref": "stack count not given in the sources used",
+     "src": "vr-page",
+     "st": "undisclosed",
+     "v": null
+    },
+    "nvlink_bidir": {
+     "ref": "NVIDIA Rubin GPU: NVLink Bandwidth 3 TB/s (nvlink-page: 3,000 GB/s per GPU, preliminary)",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 3000000000000.0
+    },
+    "nvlink_links": {
+     "ref": "sixth generation: maximum 36 links per GPU (preliminary)",
+     "src": "nvlink-page",
+     "st": "spec",
+     "v": 36
+    },
+    "pcie_bidir": {
+     "ref": "not given in the sources used",
+     "src": "vr-page",
+     "st": "undisclosed",
+     "v": null
+    },
+    "tdp_w": {
+     "ref": "not given in the sources used",
+     "src": "vr-page",
+     "st": "undisclosed",
+     "v": null
+    },
+    "transistors": {
+     "ref": "not given in the sources used",
+     "src": "vr-page",
+     "st": "undisclosed",
+     "v": null
+    }
+   },
+   "id": "rubin",
+   "name": "Rubin (Vera Rubin NVL72)"
+  }
+ ],
+ "hallW": 100000000.0,
+ "ladderPayload": 1000000000.0,
+ "models": [
+  {
+   "id": "llama3-70b",
+   "name": "Llama 3 70B",
+   "params": 70000000000.0,
+   "src": "llama3"
+  },
+  {
+   "id": "llama3-405b",
+   "name": "Llama 3.1 405B",
+   "params": 405000000000.0,
+   "src": "llama3"
+  },
+  {
+   "id": "deepseek-v3",
+   "name": "DeepSeek-V3 (671B total)",
+   "params": 671000000000.0,
+   "src": "deepseekv3"
+  }
+ ],
+ "sources": {
+  "alfares2008": {
+   "accessed": "2026-10-13",
+   "kind": "paper",
+   "title": "Al-Fares, Loukissas and Vahdat, A scalable, commodity data center network architecture, SIGCOMM 2008 (doi:10.1145/1402946.1402967)",
+   "url": "https://doi.org/10.1145/1402946.1402967"
+  },
+  "bw-arch": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA Blackwell Architecture page",
+   "url": "https://www.nvidia.com/en-us/data-center/technologies/blackwell-architecture/"
+  },
+  "bwu-blog": {
+   "accessed": "2026-10-13",
+   "kind": "vendor technical blog",
+   "title": "Inside NVIDIA Blackwell Ultra: The Chip Powering the AI Factory Era (NVIDIA Technical Blog; updated 2025-09-24)",
+   "url": "https://developer.nvidia.com/blog/inside-nvidia-blackwell-ultra-the-chip-powering-the-ai-factory-era/"
+  },
+  "cpo-blog": {
+   "accessed": "2026-10-13",
+   "kind": "vendor technical blog",
+   "title": "Scaling AI Factories with Co-Packaged Optics for Better Power Efficiency (NVIDIA Technical Blog, 2025-08-18)",
+   "url": "https://developer.nvidia.com/blog/scaling-ai-factories-with-co-packaged-optics-for-better-power-efficiency/"
+  },
+  "deepseekv3": {
+   "accessed": "2026-10-13",
+   "kind": "paper",
+   "title": "DeepSeek-AI, DeepSeek-V3 Technical Report (arXiv 2412.19437)",
+   "url": "https://arxiv.org/abs/2412.19437"
+  },
+  "dgx-b200-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA DGX B200 product page, Specifications",
+   "url": "https://www.nvidia.com/en-us/data-center/dgx-b200/"
+  },
+  "dgx-gb200-guide": {
+   "accessed": "2026-10-13",
+   "kind": "vendor documentation",
+   "title": "NVIDIA DGX GB200 User Guide, Hardware",
+   "url": "https://docs.nvidia.com/dgx/dgxgb200-user-guide/hardware.html"
+  },
+  "eth-switch-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA Ethernet switching page (Spectrum-4 and Spectrum-6 switch tables)",
+   "url": "https://www.nvidia.com/en-us/networking/ethernet-switching/"
+  },
+  "gb200-blog": {
+   "accessed": "2026-10-13",
+   "kind": "vendor technical blog",
+   "title": "NVIDIA GB200 NVL72 Delivers Trillion-Parameter LLM Training and Real-Time Inference (NVIDIA Technical Blog)",
+   "url": "https://developer.nvidia.com/blog/nvidia-gb200-nvl72-delivers-trillion-parameter-llm-training-and-real-time-inference/"
+  },
+  "gb200-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA GB200 NVL72 product page, Specifications",
+   "url": "https://www.nvidia.com/en-us/data-center/gb200-nvl72/"
+  },
+  "gb300-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA GB300 NVL72 product page, Specifications",
+   "url": "https://www.nvidia.com/en-us/data-center/gb300-nvl72/"
+  },
+  "h100-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA H100 product page, Product Specifications (H100 SXM column)",
+   "url": "https://www.nvidia.com/en-us/data-center/h100/"
+  },
+  "h200-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA H200 product page, Specifications (H200 SXM column)",
+   "url": "https://www.nvidia.com/en-us/data-center/h200/"
+  },
+  "hgx-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA HGX platform page, Specifications",
+   "url": "https://www.nvidia.com/en-us/data-center/hgx/"
+  },
+  "hopper-blog": {
+   "accessed": "2026-10-13",
+   "kind": "vendor technical blog",
+   "title": "NVIDIA Hopper Architecture In-Depth (NVIDIA Technical Blog)",
+   "url": "https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/"
+  },
+  "leiserson1985": {
+   "accessed": "2026-10-13",
+   "kind": "paper",
+   "title": "Leiserson, Fat-trees: universal networks for hardware-efficient supercomputing, IEEE Trans. Computers 1985 (doi:10.1109/TC.1985.6312192)",
+   "url": "https://doi.org/10.1109/TC.1985.6312192"
+  },
+  "llama3": {
+   "accessed": "2026-10-13",
+   "kind": "paper",
+   "title": "Grattafiori et al., The Llama 3 Herd of Models (arXiv 2407.21783)",
+   "url": "https://arxiv.org/abs/2407.21783"
+  },
+  "nvlink-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA NVLink and NVLink Switch page, Specifications ('Preliminary specifications; may be subject to change')",
+   "url": "https://www.nvidia.com/en-us/data-center/nvlink/"
+  },
+  "patarasuk2009": {
+   "accessed": "2026-10-13",
+   "kind": "paper",
+   "title": "Patarasuk and Yuan, Bandwidth optimal all-reduce algorithms for clusters of workstations, JPDC 2009 (doi:10.1016/j.jpdc.2008.09.002)",
+   "url": "https://doi.org/10.1016/j.jpdc.2008.09.002"
+  },
+  "photonics-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA Silicon Photonics page (co-packaged optics switches)",
+   "url": "https://www.nvidia.com/en-us/networking/products/silicon-photonics/"
+  },
+  "quantum2-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA Quantum-2 InfiniBand platform page (switches and ConnectX-7 adapters)",
+   "url": "https://www.nvidia.com/en-us/networking/quantum2/"
+  },
+  "qx800-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA Quantum-X800 InfiniBand platform page",
+   "url": "https://www.nvidia.com/en-us/networking/products/infiniband/quantum-x800/"
+  },
+  "supernic-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA Ethernet SuperNIC page (ConnectX-8)",
+   "url": "https://www.nvidia.com/en-us/networking/products/ethernet/supernic/"
+  },
+  "superpod-components": {
+   "accessed": "2026-10-13",
+   "kind": "vendor reference architecture",
+   "title": "NVIDIA DGX SuperPOD Reference Architecture (DGX GB200), Key Components",
+   "url": "https://docs.nvidia.com/dgx-superpod/reference-architecture-scalable-infrastructure-gb200/latest/dgx-superpod-components.html"
+  },
+  "superpod-network": {
+   "accessed": "2026-10-13",
+   "kind": "vendor reference architecture",
+   "title": "NVIDIA DGX SuperPOD Reference Architecture (DGX GB200), Network Fabrics (Table 3)",
+   "url": "https://docs.nvidia.com/dgx-superpod/reference-architecture-scalable-infrastructure-gb200/latest/network-fabrics.html"
+  },
+  "vr-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "NVIDIA Vera Rubin NVL72 product page, Specifications (marked 'Available Now' on the access date)",
+   "url": "https://www.nvidia.com/en-us/data-center/vera-rubin-nvl72/"
+  }
+ },
+ "superpodRules": {
+  "leaves_per_slg": {
+   "ref": "8 leaf switches (one for each compute rack) in each SLG",
+   "src": "superpod-network",
+   "st": "spec",
+   "v": 8
+  },
+  "max_sus": {
+   "ref": "scalability for up to and including 16 SUs",
+   "src": "superpod-network",
+   "st": "spec",
+   "v": 16
+  },
+  "radix": {
+   "ref": "Quantum-2 (QM9700) switches: 64 400Gb/s ports",
+   "src": "quantum2-page",
+   "st": "spec",
+   "v": 64
+  },
+  "rails": {
+   "ref": "4 SLGs to match the number of IB rails (GPUs per compute tray)",
+   "src": "superpod-network",
+   "st": "spec",
+   "v": 4
+  },
+  "spines_per_slg": {
+   "ref": "6 spine switches in each SLG",
+   "src": "superpod-network",
+   "st": "spec",
+   "v": 6
+  },
+  "systems_per_su": {
+   "ref": "each SU contains 8 DGX GB200 systems (racks)",
+   "src": "superpod-network",
+   "st": "spec",
+   "v": 8
+  }
+ },
+ "superpodTable3": [
+  {
+   "core": 18,
+   "gpus": 1152,
+   "leaf": 64,
+   "spine": 48,
+   "sus": 2
+  },
+  {
+   "core": 36,
+   "gpus": 2304,
+   "leaf": 128,
+   "spine": 96,
+   "sus": 4
+  },
+  {
+   "core": 72,
+   "gpus": 4608,
+   "leaf": 256,
+   "spine": 192,
+   "sus": 8
+  },
+  {
+   "core": 144,
+   "gpus": 9216,
+   "leaf": 512,
+   "spine": 384,
+   "sus": 16
+  }
+ ],
+ "switches": [
+  {
+   "avail": {
+    "ref": "product page",
+    "src": "quantum2-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "cpo": false,
+   "id": "quantum2",
+   "name": "Quantum-2 (QM9700 class), InfiniBand NDR",
+   "port_bps": {
+    "ref": "400Gb/s ports",
+    "src": "quantum2-page",
+    "st": "spec",
+    "v": 400000000000.0
+   },
+   "ports": {
+    "ref": "Quantum-2 switches: 64 400Gb/s ports",
+    "src": "quantum2-page",
+    "st": "spec",
+    "v": 64
+   }
+  },
+  {
+   "avail": {
+    "ref": "product page",
+    "src": "qx800-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "cpo": false,
+   "id": "q3400",
+   "name": "Quantum-X800, InfiniBand XDR",
+   "port_bps": {
+    "ref": "800 Gb/s per port",
+    "src": "qx800-page",
+    "st": "spec",
+    "v": 800000000000.0
+   },
+   "ports": {
+    "ref": "144 ports of 800 Gb/s connectivity per port",
+    "src": "qx800-page",
+    "st": "spec",
+    "v": 144
+   }
+  },
+  {
+   "avail": {
+    "ref": "switch table",
+    "src": "eth-switch-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "cpo": false,
+   "id": "sn5600",
+   "name": "Spectrum-4 SN5600, Ethernet",
+   "port_bps": {
+    "ref": "800GbE",
+    "src": "eth-switch-page",
+    "st": "spec",
+    "v": 800000000000.0
+   },
+   "ports": {
+    "ref": "SN5600: 64x OSFP 800GbE, 51.2Tb/s",
+    "src": "eth-switch-page",
+    "st": "spec",
+    "v": 64
+   }
+  },
+  {
+   "avail": {
+    "ref": "commercial availability planned for early 2026 (blog dated 2025-08-18)",
+    "src": "cpo-blog",
+    "st": "spec",
+    "v": "planned"
+   },
+   "cpo": true,
+   "id": "q3450",
+   "name": "Quantum-X Photonics Q3450, InfiniBand (co-packaged optics)",
+   "port_bps": {
+    "ref": "800 Gb/s",
+    "src": "photonics-page",
+    "st": "spec",
+    "v": 800000000000.0
+   },
+   "ports": {
+    "ref": "Q3450-LD: 144 ports of 800 Gb/s InfiniBand",
+    "src": "photonics-page",
+    "st": "spec",
+    "v": 144
+   }
+  },
+  {
+   "avail": {
+    "ref": "available in the second half of 2026",
+    "src": "photonics-page",
+    "st": "spec",
+    "v": "planned"
+   },
+   "cpo": true,
+   "id": "sn6810",
+   "name": "Spectrum-X Photonics SN6810, Ethernet (co-packaged optics)",
+   "port_bps": {
+    "ref": "800 Gb/s",
+    "src": "cpo-blog",
+    "st": "spec",
+    "v": 800000000000.0
+   },
+   "ports": {
+    "ref": "SN6810: 102.4 Tb/s, 128 ports at 800 Gb/s",
+    "src": "cpo-blog",
+    "st": "spec",
+    "v": 128
+   }
+  },
+  {
+   "avail": {
+    "ref": "available in the second half of 2026",
+    "src": "photonics-page",
+    "st": "spec",
+    "v": "planned"
+   },
+   "cpo": true,
+   "id": "sn6800",
+   "name": "Spectrum-X Photonics SN6800, Ethernet (co-packaged optics, four ASICs)",
+   "port_bps": {
+    "ref": "800 Gb/s",
+    "src": "cpo-blog",
+    "st": "spec",
+    "v": 800000000000.0
+   },
+   "ports": {
+    "ref": "SN6800: 409.6 Tb/s, 512 ports at 800 Gb/s",
+    "src": "cpo-blog",
+    "st": "spec",
+    "v": 512
+   }
+  }
+ ],
+ "systems": [
+  {
+   "avail": {
+    "ref": "product page with specifications",
+    "src": "gb200-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "c2c_bidir": {
+     "ref": "NVLink-C2C delivers 900 GB/s of bidirectional bandwidth",
+     "src": "gb200-blog",
+     "st": "spec",
+     "v": 900000000000.0
+    },
+    "compute_trays": {
+     "ref": "18x 1RU compute trays",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 18
+    },
+    "cooling": {
+     "ref": "Cooling",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": "liquid to cold plates on CPUs and GPUs; networking and storage air-cooled"
+    },
+    "cpus": {
+     "ref": "Configuration: 36 Grace CPUs",
+     "src": "gb200-page",
+     "st": "spec",
+     "v": 36
+    },
+    "cpus_per_tray": {
+     "ref": "each tray contains 2x Grace CPUs",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 2
+    },
+    "dc_volts": {
+     "ref": "AC to a nominal 50V-51V DC output, bus bar in the rack",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 50
+    },
+    "dpus_per_tray": {
+     "ref": "2x BlueField-3 DPUs, each dual-port 400G",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 2
+    },
+    "gpus": {
+     "ref": "Configuration: 36 Grace CPUs, 72 Blackwell GPUs",
+     "src": "gb200-page",
+     "st": "spec",
+     "v": 72
+    },
+    "gpus_per_tray": {
+     "ref": "each tray contains 2x Grace CPUs and 4x Blackwell GPUs",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 4
+    },
+    "hbm_bw_total": {
+     "ref": "GPU memory bandwidth 576 TB/s",
+     "src": "gb200-page",
+     "st": "spec",
+     "v": 576000000000000.0
+    },
+    "hbm_total": {
+     "ref": "GPU memory 13.4 TB HBM3E",
+     "src": "gb200-page",
+     "st": "spec",
+     "v": 13400000000000.0
+    },
+    "link_bidir": {
+     "ref": "144 NVLink ports at 100 GB per switch tray",
+     "src": "gb200-blog",
+     "st": "spec",
+     "v": 100000000000.0
+    },
+    "lpddr_bw_per_cpu": {
+     "ref": "GB200 Superchip: CPU memory bandwidth up to 512 GB/s",
+     "src": "gb200-page",
+     "st": "spec",
+     "v": 512000000000.0
+    },
+    "lpddr_per_cpu": {
+     "ref": "GB200 Superchip: CPU memory up to 480 GB LPDDR5X",
+     "src": "gb200-page",
+     "st": "spec",
+     "v": 480000000000.0
+    },
+    "nic_bps": {
+     "ref": "ConnectX-7 single-port 400G",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 400000000000.0
+    },
+    "nics_per_tray": {
+     "ref": "cluster network: 4x ConnectX-7 single-port 400G OSFP NICs",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 4
+    },
+    "nvlink_total": {
+     "ref": "NVLink bandwidth 130 TB/s",
+     "src": "gb200-page",
+     "st": "spec",
+     "v": 130000000000000.0
+    },
+    "ports_per_switch_chip": {
+     "ref": "each NVSwitch has 72 NVLink ports",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 72
+    },
+    "power_shelves": {
+     "ref": "eight power shelves, each requiring 33kW of input power",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 8
+    },
+    "psu_w": {
+     "ref": "5.5kW PSUs",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 5500.0
+    },
+    "psus_per_shelf": {
+     "ref": "six air-cooled 5.5kW PSUs, N+N redundancy",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 6
+    },
+    "rack_power_w": {
+     "ref": "rack power consumption is approximately 120kW",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 120000.0
+    },
+    "shelf_input_w": {
+     "ref": "each requiring 33kW of input power",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 33000.0
+    },
+    "switch_chips_per_tray": {
+     "ref": "each tray has 2x NVSwitches",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 2
+    },
+    "switch_trays": {
+     "ref": "9x 1RU NVLink switch trays",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 9
+    },
+    "tray_tbps_dir": {
+     "ref": "57.6 Tbps of full-duplex bandwidth for fifth-generation NVLink in a 1U design",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": 57600000000000.0
+    }
+   },
+   "gpu": "b200",
+   "id": "gb200-nvl72",
+   "name": "GB200 NVL72"
+  },
+  {
+   "avail": {
+    "ref": "product page with specifications",
+    "src": "gb300-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "gpus": {
+     "ref": "Configuration: 72 Blackwell Ultra GPUs, 36 Grace CPUs",
+     "src": "gb300-page",
+     "st": "spec",
+     "v": 72
+    },
+    "hbm_bw_total": {
+     "ref": "GPU memory bandwidth up to 576 TB/s",
+     "src": "gb300-page",
+     "st": "spec",
+     "v": 576000000000000.0
+    },
+    "hbm_total": {
+     "ref": "GPU memory 20 TB",
+     "src": "gb300-page",
+     "st": "spec",
+     "v": 20000000000000.0
+    },
+    "nic_bps": {
+     "ref": "800 Gb/s per GPU through ConnectX-8 SuperNICs",
+     "src": "gb300-page",
+     "st": "spec",
+     "v": 800000000000.0
+    },
+    "nvlink_total": {
+     "ref": "NVLink bandwidth 130 TB/s",
+     "src": "gb300-page",
+     "st": "spec",
+     "v": 130000000000000.0
+    },
+    "rack_power_w": {
+     "ref": "not given in the sources used",
+     "src": "gb300-page",
+     "st": "undisclosed",
+     "v": null
+    }
+   },
+   "gpu": "b300",
+   "id": "gb300-nvl72",
+   "name": "GB300 NVL72"
+  },
+  {
+   "avail": {
+    "ref": "'Available Now' on the product page; NVLink 6 specifications marked preliminary (nvlink-page)",
+    "src": "vr-page",
+    "st": "spec",
+    "v": "preliminary"
+   },
+   "fields": {
+    "factory_gpus": {
+     "ref": "100 MW AI factory reference: 40K Rubin GPUs",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 40000
+    },
+    "factory_w": {
+     "ref": "100 MW AI factory (NVIDIA DSX with MaxLPS)",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 100000000.0
+    },
+    "gpus": {
+     "ref": "Configuration: 72 Rubin GPUs, 36 Vera CPUs",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 72
+    },
+    "hbm_bw_total": {
+     "ref": "bandwidth 1,400 TB/s",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 1400000000000000.0
+    },
+    "hbm_total": {
+     "ref": "GPU memory 20.7 TB HBM4",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 20700000000000.0
+    },
+    "inlet_c": {
+     "ref": "Inlet temp 45°C",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 45
+    },
+    "net_bidir_per_gpu": {
+     "ref": "networking bandwidth 0.45 TB/s per GPU, bi-directional",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 450000000000.0
+    },
+    "nvlink_total": {
+     "ref": "NVLink bandwidth 216 TB/s",
+     "src": "vr-page",
+     "st": "spec",
+     "v": 216000000000000.0
+    },
+    "rack_power_w": {
+     "ref": "not given in the sources used",
+     "src": "vr-page",
+     "st": "undisclosed",
+     "v": null
+    }
+   },
+   "gpu": "rubin",
+   "id": "vr-nvl72",
+   "name": "Vera Rubin NVL72"
+  },
+  {
+   "avail": {
+    "ref": "product page with specifications",
+    "src": "dgx-b200-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "gpus": {
+     "ref": "eight NVIDIA Blackwell GPUs",
+     "src": "dgx-b200-page",
+     "st": "spec",
+     "v": 8
+    },
+    "hbm_bw_total": {
+     "ref": "64 TB/s HBM3e bandwidth",
+     "src": "dgx-b200-page",
+     "st": "spec",
+     "v": 64000000000000.0
+    },
+    "hbm_total": {
+     "ref": "1,440 GB total GPU memory",
+     "src": "dgx-b200-page",
+     "st": "spec",
+     "v": 1440000000000.0
+    },
+    "nic_bps": {
+     "ref": "8x single-port ConnectX-7, up to 400 Gb/s",
+     "src": "dgx-b200-page",
+     "st": "spec",
+     "v": 400000000000.0
+    },
+    "node_power_w": {
+     "ref": "about 14.3 kW maximum system power",
+     "src": "dgx-b200-page",
+     "st": "spec",
+     "v": 14300.0
+    },
+    "nvlink_total": {
+     "ref": "14.4 TB/s aggregate NVLink bandwidth",
+     "src": "dgx-b200-page",
+     "st": "spec",
+     "v": 14400000000000.0
+    },
+    "nvswitch_chips": {
+     "ref": "2x NVSwitch",
+     "src": "dgx-b200-page",
+     "st": "spec",
+     "v": 2
+    },
+    "rack_units": {
+     "ref": "10 RU",
+     "src": "dgx-b200-page",
+     "st": "spec",
+     "v": 10
+    }
+   },
+   "gpu": "b200",
+   "id": "dgx-b200",
+   "name": "DGX B200 (8-GPU node)"
+  }
+ ]
+}

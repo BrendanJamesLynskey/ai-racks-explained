@@ -1,0 +1,81 @@
+<PackageWidget>
+  <Eq
+    label="The number of GPUs is the weights divided by one GPU's HBM capacity, rounded up; each GPU reads its share once in its share divided by the HBM bandwidth; capacity is the number of stacks times the capacity of one"
+    tex="N_{\text{GPU}} = \left\lceil \frac{W}{C_{\text{HBM}}} \right\rceil, \qquad t_{\text{read}} = \frac{\htmlClass{hl-share}{W / N_{\text{GPU}}}}{\htmlClass{hl-hbm}{B_{\text{HBM}}}}, \qquad C_{\text{HBM}} = \htmlClass{hl-stacks}{n_{\text{stacks}}} \times c_{\text{stack}}"
+  />
+</PackageWidget>
+
+<Layer kind="concept">
+
+A data-centre GPU is a **package**: one or two compute dies in the middle and stacks of HBM (high-bandwidth memory) around them, on a silicon interposer or bridge that carries thousands of wires between them. Each HBM stack is DRAM dies stacked on a base die, with a 1,024-bit interface; that width is why the stacks sit millimetres from the compute die instead of on the board.
+
+The two packages in the animation:
+
+- **H100 SXM5**: one die and <V of="gpu.h100.hbm_stacks" fmt="int" /> HBM3 stacks of <V of="pkg.h100.per_stack_bytes" fmt="bytes" />, <V of="pkg.h100.per_stack_bw" fmt="rate" /> each. The full GH100 die has six HBM sites; the SXM5 product uses five (NVIDIA's Hopper in-depth blog).
+- **Blackwell Ultra**: two reticle-limited dies joined by a 10 TB/s die-to-die link into one GPU, and <V of="gpu.b300.hbm_stacks" fmt="int" /> twelve-high HBM3E stacks of <V of="pkg.b300.per_stack_bytes" fmt="bytes" />, <V of="pkg.b300.per_stack_bw" fmt="rate" /> each: <V of="gpu.b300.hbm_bytes" fmt="bytes" /> in all.
+
+Capacity decides **how many GPUs** a model needs before any parallelism choice is made. Llama 3.1 405B in FP8 is <V of="fit.h100.llama3-405b.fp8.weights" fmt="bytes" /> of weights: <V of="fit.h100.llama3-405b.fp8.gpus" fmt="int" /> H100s, or <V of="fit.b300.llama3-405b.fp8.gpus" fmt="int" /> Blackwell Ultras.
+
+Bandwidth decides **how fast** those weights can be used. Generating one token at batch size 1 reads every weight once, so a GPU holding <V of="fit.b300.llama3-405b.fp8.share" fmt="bytes" /> of them cannot produce a token faster than <V of="fit.b300.llama3-405b.fp8.read_time" fmt="time" />, whatever its arithmetic. Batching many requests shares that read; the [Serving site's roofline chapter](https://llm-inference-explained.vercel.app/learn/03-roofline) shows where it stops helping.
+
+Arithmetic has grown faster than memory bandwidth. Dense FP8 per byte of HBM bandwidth (the roofline's ridge point) is <V of="pkg.h100.ridge_fp8" fmt="num" /> flop/byte on H100, <V of="pkg.b300.ridge_fp8" fmt="num" /> on Blackwell Ultra and <V of="pkg.rubin.ridge_fp8" fmt="num" /> on Rubin. And capacity has grown faster than bandwidth on Blackwell Ultra: reading its whole HBM once takes <V of="pkg.b300.sweep_time" fmt="time" />, against <V of="pkg.h100.sweep_time" fmt="time" /> on H100; Rubin's HBM4 brings it to <V of="pkg.rubin.sweep_time" fmt="time" />.
+
+</Layer>
+
+<Callout kind="illustrative">
+
+Weights only: the KV cache, activations and the serving runtime also need HBM, so real deployments use more GPUs than this lower bound. FP4 is counted at half a byte per weight, without its block scales. The stack count is drawn only where NVIDIA states it (H100, Blackwell Ultra); for H200, Blackwell and Rubin the sources used give capacity and bandwidth but not the stack count.
+
+</Callout>
+
+<Layer kind="maths">
+
+With $n$ stacks the package's capacity and bandwidth are $C = n\,c$ and $B = n\,b$ for one stack's $c$ and $b$. A model of $P$ parameters at $\beta$ bytes each has $W = \beta P$ bytes of weights, so
+
+$$
+N_{\text{GPU}} = \left\lceil \frac{\beta P}{C} \right\rceil, \qquad
+t_{\text{read}} = \frac{\beta P / N_{\text{GPU}}}{B}, \qquad
+\text{tokens/s at batch 1} \le \frac{1}{t_{\text{read}}} .
+$$
+
+The ridge point is $F / B$ for dense peak $F$: a kernel doing fewer than $F/B$ operations per byte it reads from HBM waits on memory.
+
+</Layer>
+
+<Layer kind="code">
+
+The fit, cut from [`src/lib/racks/model.ts`](https://github.com/BrendanJamesLynskey/ai-racks-explained/blob/main/src/lib/racks/model.ts):
+
+```ts
+const wb = weightsBytes(mid, fmt);
+const n = Math.ceil(wb / g.hbm_bytes);
+const share = wb / n;
+return {
+  weights: wb,
+  gpus: n,
+  share,
+  fill: share / g.hbm_bytes,
+  read_time: share / g.hbm_bw,
+  tokens_per_s: g.hbm_bw / share,
+};
+```
+
+</Layer>
+
+## Five generations of package
+
+<SpecTable
+  kind="gpu"
+  ids="h100,h200,b200,b300,rubin"
+  fields="hbm_bytes,hbm_bw,hbm_stacks,hbm_gen,dies,transistors,dense_fp8,tdp_w"
+/>
+
+Blackwell's two dies are each as large as the lithography reticle allows; joining two of them is how the GPU grew past one die's limit. Rubin's specifications come from NVIDIA's Vera Rubin NVL72 page, whose NVLink figures NVIDIA marks preliminary.
+
+<Callout kind="deeper">
+
+- The roofline inside one GPU: [GPU Kernels Explained, chapter 2](https://gpu-kernels-explained.vercel.app/learn/02-roofline); the KV cache that shares HBM with the weights: [Serving, chapter 2](https://llm-inference-explained.vercel.app/learn/02-kv-cache).
+- NVIDIA GPU series: [the stack, anatomy of HBM3e](https://brendanjameslynskey.github.io/NVIDIA_GPU_23_HBM_Internals/#slide-02), [CoWoS packaging](https://brendanjameslynskey.github.io/NVIDIA_GPU_23_HBM_Internals/#slide-09), [the reticle limit](https://brendanjameslynskey.github.io/NVIDIA_GPU_25_Process_and_Packaging/#slide-03) and [Blackwell's dual-die solution](https://brendanjameslynskey.github.io/NVIDIA_GPU_25_Process_and_Packaging/#slide-05).
+- NVIDIA, [Inside NVIDIA Blackwell Ultra](https://developer.nvidia.com/blog/inside-nvidia-blackwell-ultra-the-chip-powering-the-ai-factory-era/) and [Hopper architecture in depth](https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/).
+
+</Callout>

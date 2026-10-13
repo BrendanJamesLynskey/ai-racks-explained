@@ -1,0 +1,70 @@
+<FabricWidget>
+  <Eq
+    label="With k-port switches whose leaves have d ports down and u up, two tiers reach k times d GPUs; leaves are N over d rounded up; spines are leaves times u over k rounded up; every optical link needs two transceivers"
+    tex="\begin{gathered} \text{leaves} = \left\lceil \frac{N}{\htmlClass{hl-leaf}{d}} \right\rceil, \quad \text{spines} = \left\lceil \frac{\text{leaves} \cdot \htmlClass{hl-spine}{u}}{k} \right\rceil \\ d + u = k, \qquad N_{\max} = k\,d \ \text{(two tiers)} \\ \htmlClass{hl-core}{N_{\max} = k^3/4} \ \text{(three tiers, non-blocking)} \\ \htmlClass{hl-optics}{\text{transceivers} = 2 \times \text{optical links}} \end{gathered}"
+  />
+</FabricWidget>
+
+<Layer kind="concept">
+
+Past the rack, GPUs reach each other through a switched network: InfiniBand (NVIDIA Quantum) or Ethernet (Spectrum-X and others), one port per GPU. The standard shape is the **fat tree**, or folded Clos network (Leiserson 1985; Al-Fares, Loukissas and Vahdat 2008): **leaf** switches connect GPUs, **spine** switches connect leaves, and when that runs out, **core** switches connect groups of leaves and spines. If every leaf has as many links up as GPUs down, any half of the GPUs can talk to the other half at full rate: the fabric is **non-blocking**.
+
+The switch's port count sets the size. Two tiers of $k$-port switches reach $k \times k/2$ GPUs: <V of="tree.n2048.k64.o1.two_tier_max" fmt="int" /> with 64-port Quantum-2 switches, <V of="tree.n9216.k144.o1.two_tier_max" fmt="int" /> with 144-port Quantum-X800 switches (NVIDIA says its 144-port photonics switch connects "over 10,000 GPUs" in a non-blocking two-level fat tree). Beyond that a third tier is needed, and the longest path grows from 4 links to 6.
+
+Build a fabric for <V of="tree.n9216.k64.o1.n" fmt="int" /> GPUs in the animation. With 64-port switches it takes three tiers and <V of="tree.n9216.k64.o1.switches" fmt="int" /> switches; with 144-port switches, two tiers and <V of="tree.n9216.k144.o1.switches" fmt="int" />. The transceivers follow the links: <V of="tree.n9216.k64.o1.transceivers" fmt="int" /> against <V of="tree.n9216.k144.o1.transceivers" fmt="int" />, six per GPU against four.
+
+**Oversubscription** trades bandwidth for hardware: at 2:1 a leaf gives two-thirds of its ports to GPUs and one-third to uplinks, so 9,216 GPUs on 64-port switches need <V of="tree.n9216.k64.o2.switches" fmt="int" /> switches instead of <V of="tree.n9216.k64.o1.switches" fmt="int" />, but when every GPU sends across the fabric at once each gets half its port's rate.
+
+</Layer>
+
+## Rail-aligned: the published SuperPOD design
+
+NVIDIA's DGX SuperPOD reference architecture for GB200 does not build the generic tree. Its fabric is **rail-aligned**: a compute tray's four network ports go to four different leaf switches, one per rail, and each rack has its own leaf for each rail (8 racks × 4 rails = 32 leaves per scalable unit). Each rail group has 6 spines, and core switches join scalable units; in NVIDIA's words, traffic between different racks, or between different rails, traverses the spine layer. The model applies these rules and reproduces the switch counts of NVIDIA's published table exactly:
+
+<ValidationTable only="superpod" />
+
+The rail-aligned fabric uses more switches than the generic tree of the same switches: <V of="rail.16.leaves" fmt="int" /> leaves, <V of="rail.16.spines" fmt="int" /> spines and <V of="rail.16.cores" fmt="int" /> cores for 9,216 GPUs, against <V of="tree.n9216.k64.o1.switches" fmt="int" /> switches in all for the generic tree, because each leaf serves one rack's rail and uses <V of="rail.16.leaf_ports_used" fmt="int" /> of its 64 ports. In exchange, each leaf's cabling stays with one rack, and a scalable unit's fabric is the same whether or not all its racks are installed: NVIDIA's design notes ask for the full unit's leaves and leaf-to-spine cables to be built even when some racks are missing.
+
+<Callout kind="illustrative">
+
+Port counts, links and transceivers are exact for the rules stated; the watts per transceiver are yours to choose, because the sources used do not publish per-port power. The model counts every link as optical (two transceivers), including the GPU-to-leaf links, which can be copper over short distances. A partly filled three-tier fabric is counted in whole pods.
+
+</Callout>
+
+<Layer kind="maths">
+
+With $k$-port switches, leaves give $d$ ports down and $u = k - d$ up; non-blocking is $d = u = k/2$, and $r{:}1$ oversubscription is $d = \lfloor k r / (r+1) \rfloor$. Two tiers hold $N \le k\,d$ GPUs with
+
+$$
+L = \left\lceil \frac{N}{d} \right\rceil, \qquad S = \left\lceil \frac{L\,u}{k} \right\rceil .
+$$
+
+Three tiers group $k/2$ leaves and $k/2$ aggregation switches into pods of $k d / 2$ GPUs under $\lceil P\,(k/2)^2 / k \rceil$ core switches for $P$ pods; a full non-blocking tree holds $k^3/4$ GPUs with $5k^2/4$ switches (Al-Fares et al.). Links: $N$ to the leaves, $L u$ leaf-to-spine and, with three tiers, $P (k/2)^2$ aggregation-to-core; every optical link has a transceiver at each end.
+
+</Layer>
+
+<Layer kind="code">
+
+The two-tier case, cut from [`src/lib/racks/model.ts`](https://github.com/BrendanJamesLynskey/ai-racks-explained/blob/main/src/lib/racks/model.ts):
+
+```ts
+const down = Math.floor((k * oversub) / (oversub + 1));
+const up = k - down;
+const twoMax = k * down;
+```
+
+</Layer>
+
+## Optics: pluggable and co-packaged
+
+Every switch-to-switch link here is optical, with a pluggable transceiver at each end, and at 9,216 GPUs a non-blocking fabric needs tens of thousands of them. **Co-packaged optics** move the optical engines into the switch package, removing the pluggable modules. NVIDIA quotes "3.5x power efficiency" for its co-packaged switches against pluggable transceivers; the claim is shown here, not used in the model.
+
+<SwitchTable />
+
+<Callout kind="deeper">
+
+- Data parallelism and its gradient all-reduce, the traffic this network carries most: [Training, chapter 11](https://transformer-training-explained.vercel.app/training/11-data-parallelism).
+- NVIDIA GPU series: [Quantum InfiniBand switches](https://brendanjameslynskey.github.io/NVIDIA_GPU_13_Networking_InfiniBand_BlueField/#slide-04), [Spectrum-X, Ethernet for AI](https://brendanjameslynskey.github.io/NVIDIA_GPU_13_Networking_InfiniBand_BlueField/#slide-05), [SHARP in-network reductions](https://brendanjameslynskey.github.io/NVIDIA_GPU_13_Networking_InfiniBand_BlueField/#slide-07) and [bandwidth, latency and cost at scale](https://brendanjameslynskey.github.io/NVIDIA_GPU_13_Networking_InfiniBand_BlueField/#slide-10).
+- Al-Fares, Loukissas and Vahdat, [A scalable, commodity data center network architecture](https://doi.org/10.1145/1402946.1402967); NVIDIA, [DGX SuperPOD network fabrics](https://docs.nvidia.com/dgx-superpod/reference-architecture-scalable-infrastructure-gb200/latest/network-fabrics.html) and [co-packaged optics](https://developer.nvidia.com/blog/scaling-ai-factories-with-co-packaged-optics-for-better-power-efficiency/).
+
+</Callout>
