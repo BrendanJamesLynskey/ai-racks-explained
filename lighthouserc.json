@@ -10,7 +10,13 @@
         "http://localhost:3000/learn/02-the-package",
         "http://localhost:3000/learn/03-trays-and-nodes",
         "http://localhost:3000/learn/04-scale-up-nvlink",
-        "http://localhost:3000/learn/05-scale-out-network"
+        "http://localhost:3000/learn/05-scale-out-network",
+        "http://localhost:3000/learn/06-power",
+        "http://localhost:3000/learn/07-cooling",
+        "http://localhost:3000/learn/08-disaggregated-inference",
+        "http://localhost:3000/learn/09-training-clusters",
+        "http://localhost:3000/learn/10-other-designs",
+        "http://localhost:3000/learn/11-cost"
       ],
       "numberOfRuns": 3
     },

@@ -11,7 +11,20 @@ const ANIMATIONS = [
   ["/learn/03-trays-and-nodes", "path-widget"],
   ["/learn/04-scale-up-nvlink", "ring-widget"],
   ["/learn/05-scale-out-network", "fabric-widget"],
+  ["/learn/06-power", "power-widget"],
+  ["/learn/07-cooling", "cooling-widget"],
+  ["/learn/08-disaggregated-inference", "disagg-widget"],
+  ["/learn/09-training-clusters", "training-widget"],
+  ["/learn/10-other-designs", "torus-widget"],
+  ["/learn/11-cost", "cost-widget"],
 ] as const;
+
+/** Chapter 8's animation appears once its simulation has run in the worker. */
+async function ready(fig: Locator): Promise<void> {
+  const sim = fig.locator("[data-sim]");
+  if (await sim.count())
+    await expect(sim).toHaveAttribute("data-sim", "ready", { timeout: 30000 });
+}
 
 async function step(fig: Locator): Promise<number> {
   return Number(await fig.getAttribute("data-step"));
@@ -43,6 +56,7 @@ for (const scheme of ["light", "dark"] as const) {
           const fig = page.getByTestId(id);
           await expect(fig).toBeVisible();
           await fig.scrollIntoViewIfNeeded();
+          await ready(fig);
           // it plays (it may already be playing: it starts when visible)
           await pause(fig);
           await fig
@@ -113,6 +127,7 @@ test.describe("reduced motion", () => {
       const fig = page.getByTestId(id);
       await expect(fig).toBeVisible();
       await fig.scrollIntoViewIfNeeded();
+      await ready(fig);
       await page.waitForTimeout(2500);
       await expect(fig).toHaveAttribute("data-playing", "false");
       expect(await step(fig)).toBe(0);
@@ -157,6 +172,7 @@ test.describe("phone labels", () => {
       await page.goto(path);
       const fig = page.getByTestId(id);
       await fig.scrollIntoViewIfNeeded();
+      await ready(fig);
       // let the size observer settle
       await page.waitForTimeout(300);
       const sizes = await fig.evaluate((el) =>

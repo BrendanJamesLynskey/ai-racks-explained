@@ -41,6 +41,42 @@ export const SECTIONS = [
     summary:
       "Leaf, spine and core switches, rail-aligned fabrics, oversubscription, and the transceivers every link needs.",
   },
+  {
+    slug: "06-power",
+    title: "Power",
+    summary:
+      "Power shelves, busbars and the move to 800 V DC; why a training job's synchronised swings need storage in the rack; tokens per megawatt.",
+  },
+  {
+    slug: "07-cooling",
+    title: "Cooling",
+    summary:
+      "Why air runs out at rack scale: cold plates, the coolant loop, CDUs and facility water, sized with Q = ṁ c_p ΔT.",
+  },
+  {
+    slug: "08-disaggregated-inference",
+    title: "Disaggregated inference on a rack",
+    summary:
+      "Prefill and decode as separate pools in one NVL72-sized rack, the KV hand-off between them, pool sizing and context-optimised parts, run live on a tested simulator.",
+  },
+  {
+    slug: "09-training-clusters",
+    title: "Training clusters",
+    summary:
+      "How a training job's tensor, pipeline and data parallelism land on NVLink domains and the network, and how often a large job is interrupted.",
+  },
+  {
+    slug: "10-other-designs",
+    title: "Other designs",
+    summary:
+      "TPU pods built from torus cubes and optical switches, and other vendors' rack-scale systems: what each changes about the ladder.",
+  },
+  {
+    slug: "11-cost",
+    title: "Cost per token",
+    summary:
+      "Capital, electricity and utilisation turned into cost per million tokens and tokens per megawatt, with every price marked illustrative.",
+  },
 ] as const;
 
 export type SectionSlug = (typeof SECTIONS)[number]["slug"];

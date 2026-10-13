@@ -16,13 +16,22 @@ import {
   trim,
 } from "@/lib/format";
 import {
+  BUSBAR_CASES,
+  FACILITY_RECORDS,
   GPU_RECORDS,
+  OTHER_ORDER,
+  OTHER_RECORDS,
   SOURCES,
   SWITCH_RECORDS,
   SYSTEM_RECORDS,
+  busbar,
+  checkpoint,
+  scaleupPerChip,
   validation,
   type Field,
 } from "@/lib/racks/model";
+import { DISAGG, recorded, runKey, type Split } from "@/lib/racks/disagg";
+import { fmtTime, pct } from "@/lib/format";
 
 /** How each field is printed, and its row label. */
 export const FIELD_INFO: Record<
@@ -75,6 +84,38 @@ export const FIELD_INFO: Record<
   nvswitch_chips: { label: "NVSwitch chips", fmt: fmtInt },
   node_power_w: { label: "System power", fmt: fmtWatts },
   rack_units: { label: "Rack units", fmt: fmtInt },
+  busbar_v: { label: "Rack DC bus today", fmt: (v) => `${v} V` },
+  hvdc_v: { label: "Planned rack feed", fmt: (v) => `${v} V DC` },
+  mw_rack_w: { label: "Planned rack power", fmt: fmtWatts },
+  copper_1mw_kg: {
+    label: "Busbar copper, 1 MW at 54 V",
+    fmt: (v) => `${v} kg`,
+  },
+  storage_j_per_gpu: { label: "Energy storage per GPU", fmt: (v) => `${v} J` },
+  legacy_rack_w: { label: "Rack power, earlier data centres", fmt: fmtWatts },
+  hyperscale_rack_w: { label: "Rack power, hyperscale today", fmt: fmtWatts },
+  cdu_w: { label: "One CDU's capacity", fmt: fmtWatts },
+  cdu_approach_k: { label: "CDU approach", fmt: (v) => `${v} K` },
+  coldplate_w: { label: "Cold plate rating", fmt: fmtWatts },
+  liquid_parts: { label: "What the liquid cools", fmt: String },
+  air_density: { label: "Air density", fmt: (v) => `${v} kg/m³` },
+  air_r: { label: "Gas constant of air", fmt: (v) => `${v} J/(kg K)` },
+  air_gamma: { label: "Heat-capacity ratio of air", fmt: (v) => `${v}` },
+  water_kg_per_l: { label: "Water per litre", fmt: (v) => `${v} kg` },
+  chips: { label: "Accelerators", fmt: fmtInt },
+  topology: { label: "Scale-up topology", fmt: String },
+  scaleup_bidir: {
+    label: "Scale-up per chip (both directions)",
+    fmt: fmtRate,
+  },
+  scaleup_total: { label: "Scale-up, whole system", fmt: fmtRate },
+  scaleout_total: { label: "Scale-out, whole system", fmt: fmtRate },
+  scaleout_bps: { label: "Scale-out, whole system", fmt: fmtBits },
+  instance_chips: { label: "Chips per instance", fmt: fmtInt },
+  instance_fp8: { label: "FP8 per instance", fmt: fmtFlops },
+  fp8_total: { label: "FP8, whole system", fmt: fmtFlops },
+  instance_hbm_bw: { label: "HBM bandwidth per instance", fmt: fmtRate },
+  rack_form: { label: "Rack", fmt: String },
   systems_per_su: { label: "Racks per scalable unit", fmt: fmtInt },
   rails: { label: "Rails", fmt: fmtInt },
   leaves_per_slg: { label: "Leaves per rail group", fmt: fmtInt },
@@ -122,6 +163,8 @@ export function FieldCell({ f, k }: { f: Field; k: string }): JSX.Element {
 function records(kind: string) {
   if (kind === "gpu") return GPU_RECORDS;
   if (kind === "system") return SYSTEM_RECORDS;
+  if (kind === "facility") return FACILITY_RECORDS;
+  if (kind === "other") return OTHER_RECORDS;
   throw new Error(`unknown kind ${kind}`);
 }
 
@@ -130,7 +173,7 @@ export function SpecTable({
   ids,
   fields,
 }: {
-  kind: "gpu" | "system";
+  kind: "gpu" | "system" | "facility" | "other";
   ids: string;
   fields: string;
 }): JSX.Element {
@@ -263,6 +306,214 @@ export function ValidationTable({ only }: { only?: string }): JSX.Element {
               <td className="text-right font-mono">{v.ratio.toFixed(4)}</td>
             </tr>
           ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const REGION = "my-6 overflow-x-auto";
+
+/** Chapter 6: the same power at 50, 54 and 800 V (busbar()). */
+export function BusbarTable(): JSX.Element {
+  return (
+    <div
+      className={REGION}
+      tabIndex={0}
+      role="region"
+      aria-label="Bus currents"
+    >
+      <table className="w-full text-sm">
+        <thead>
+          <tr>
+            <th className="text-left">Rack power</th>
+            <th className="text-right">Bus</th>
+            <th className="text-right">Current</th>
+            <th className="text-right">Loss vs 54 V</th>
+            <th className="text-right">Copper (derived)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {BUSBAR_CASES.map(([p, v]) => {
+            const b = busbar(p, v);
+            return (
+              <tr key={`${p}-${v}`} data-bus={`${p}-${v}`}>
+                <td>{fmtWatts(p)}</td>
+                <td className="text-right font-mono">{v} V</td>
+                <td className="text-right font-mono">{fmtInt(b.amps)} A</td>
+                <td className="text-right font-mono">{trim(b.loss_rel, 3)}×</td>
+                <td className="text-right font-mono">
+                  {trim(b.copper_kg, 3)} kg
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Chapter 8: the recorded runs (scripts/disagg_reference.py). */
+export function DisaggTable({ part = "b200" }: { part?: string }): JSX.Element {
+  const rows: { split: Split; link: (typeof DISAGG.linkOrder)[number] }[] = [];
+  for (const [a, b] of DISAGG.splits)
+    for (const link of DISAGG.linkOrder)
+      if (part !== "parts" || (`${a}-${b}` === "12-6" && link === "nvlink"))
+        rows.push({ split: `${a}-${b}` as Split, link });
+  const parts =
+    part === "parts" ? DISAGG.parts : [part as (typeof DISAGG.parts)[number]];
+  const linkName = {
+    nvlink: "NVLink",
+    ib: "4×400G",
+    eth100: "100GbE",
+  } as const;
+  const partName = {
+    b200: "B200 in both pools",
+    "ctx-prefill": "context part for prefill",
+    "ctx-decode": "context part for decode",
+  } as const;
+  return (
+    <div
+      className={REGION}
+      tabIndex={0}
+      role="region"
+      aria-label="Recorded runs"
+    >
+      <table className="w-full text-sm">
+        <thead>
+          <tr>
+            <th className="text-left">Pools</th>
+            <th className="text-left">KV link</th>
+            {part === "parts" && <th className="text-left">Parts</th>}
+            <th className="text-right">TTFT p99</th>
+            <th className="text-right">TPOT p99</th>
+            <th className="text-right">Met SLOs</th>
+            <th className="text-right">Hand-off</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.flatMap(({ split, link }) =>
+            parts.map((pt) => {
+              const r = recorded(runKey(split, link, pt));
+              return (
+                <tr
+                  key={`${split}-${link}-${pt}`}
+                  data-run={`${split}.${link}.${pt}`}
+                >
+                  <td>{split.replace("-", ":")}</td>
+                  <td>{linkName[link]}</td>
+                  {part === "parts" && <td>{partName[pt]}</td>}
+                  <td className="text-right font-mono">
+                    {fmtTime(r.ttft_p99)}
+                  </td>
+                  <td className="text-right font-mono">
+                    {fmtTime(r.tpot_p99)}
+                  </td>
+                  <td className="text-right font-mono">{pct(r.slo, 1)}</td>
+                  <td className="text-right font-mono">
+                    {fmtTime(r.handoff_mean)}
+                  </td>
+                </tr>
+              );
+            }),
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Chapter 9: Young's interval for jobs of different sizes. */
+export function CheckpointTable({ save = 60 }: { save?: number }): JSX.Element {
+  return (
+    <div
+      className={REGION}
+      tabIndex={0}
+      role="region"
+      aria-label="Checkpoint intervals"
+    >
+      <table className="w-full text-sm">
+        <thead>
+          <tr>
+            <th className="text-left">GPUs</th>
+            <th className="text-right">Interruptions a day</th>
+            <th className="text-right">Mean time between</th>
+            <th className="text-right">Checkpoint every</th>
+            <th className="text-right">Time lost</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[1024, 4096, 16384, 100000].map((n) => {
+            const c = checkpoint(n, save);
+            return (
+              <tr key={n} data-ckpt={n}>
+                <td>{fmtInt(n)}</td>
+                <td className="text-right font-mono">{trim(c.per_day, 3)}</td>
+                <td className="text-right font-mono">{fmtTime(c.mtbf_s)}</td>
+                <td className="text-right font-mono">{fmtTime(c.tau_s)}</td>
+                <td className="text-right font-mono">{pct(c.waste, 1)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Chapter 10: other designs side by side, every figure with its source. */
+export function OthersTable(): JSX.Element {
+  const ks = ["chips", "topology", "scaleup_bidir", "hbm_bw"];
+  return (
+    <div
+      className={REGION}
+      tabIndex={0}
+      role="region"
+      aria-label="Other designs"
+    >
+      <table className="w-full text-sm">
+        <thead>
+          <tr>
+            <th className="text-left">Design</th>
+            <th className="text-left">Accelerators</th>
+            <th className="text-left">Scale-up</th>
+            <th className="text-left">Per chip (both ways)</th>
+            <th className="text-left">HBM per chip</th>
+          </tr>
+        </thead>
+        <tbody>
+          {OTHER_ORDER.map((id) => {
+            const r = OTHER_RECORDS.find((x) => x.id === id)!;
+            const per = scaleupPerChip(id);
+            return (
+              <tr key={id} data-design={id}>
+                <td>
+                  {r.name}
+                  <span className="block text-[0.7rem] text-neutral-600 dark:text-neutral-400">
+                    {r.avail.v}
+                  </span>
+                </td>
+                {ks.map((k) => (
+                  <td key={k}>
+                    {k === "scaleup_bidir" && !r.fields[k] ? (
+                      per === null ? (
+                        "not disclosed"
+                      ) : (
+                        <span data-status="derived">
+                          {fmtRate(per)} (derived: total ÷ chips)
+                        </span>
+                      )
+                    ) : r.fields[k] ? (
+                      <FieldCell f={r.fields[k]!} k={k} />
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

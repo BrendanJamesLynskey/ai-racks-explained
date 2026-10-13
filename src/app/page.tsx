@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { LadderBars } from "@/components/viz/LadderBars";
 import { SECTIONS } from "@/lib/mdx/sections";
-import { PLANNED } from "@/lib/planned";
 import { formatValue, lookup, type Fmt } from "@/lib/racks/values";
 import {
   KERNELS_URL,
@@ -82,13 +81,19 @@ export default function HomePage(): JSX.Element {
           </Link>
         ))}
       </nav>
-      <div className="mt-8 rounded-lg border border-dashed border-neutral-300 p-5 dark:border-neutral-700">
-        <h2 className="text-sm font-semibold">Coming next</h2>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-neutral-600 dark:text-neutral-400">
-          {PLANNED.map((p) => (
-            <li key={p}>{p}</li>
-          ))}
-        </ul>
+      <div className="mt-8 rounded-lg border border-accent/40 p-5 dark:border-indigo-400/40">
+        <h2 className="text-sm font-semibold">The centrepiece</h2>
+        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+          <Link href="/learn/08-disaggregated-inference" className={LINK}>
+            Chapter 8
+          </Link>{" "}
+          serves {v("dis.meta.n", "int")} requests on one{" "}
+          {v("dis.meta.gpus", "int")}-GPU rack with prefill and decode in
+          separate pools, running a tested discrete-event simulator in your
+          browser: split the rack, change the link the KV cache crosses, or put
+          a cheaper context-optimised part in one pool, and watch latency and
+          energy per token move.
+        </p>
       </div>
       <p className="mt-6 text-sm text-neutral-600 dark:text-neutral-400">
         Every hardware figure the model uses, with its source and access date:{" "}

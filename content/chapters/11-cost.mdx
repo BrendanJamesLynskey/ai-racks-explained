@@ -1,0 +1,60 @@
+<CostWidget>
+  <Eq
+    label="Cost per token is the capital cost per year plus the electricity per year, over the tokens served in a year"
+    tex="\frac{\text{cost}}{\text{token}} = \frac{\htmlClass{hl-capex}{C / Y} + \htmlClass{hl-energy}{P\cdot \text{PUE}\cdot h\cdot p_e}}{\htmlClass{hl-tokens}{R\cdot u\cdot h\cdot 3600}}"
+  />
+</CostWidget>
+
+<Layer kind="concept">
+
+The cost of a token has two big parts. **Capital**: the rack, its share of the network and the building, written off over its useful life. **Energy**: the rack's power, plus the facility's overhead for cooling and conversion (the _PUE_, power usage effectiveness: facility power over IT power), times the price of electricity. Divide by the tokens the rack serves, which depends on how fast it serves them and how much of the time it is busy.
+
+**Every price here is illustrative.** NVIDIA does not publish rack prices, electricity prices vary several-fold between sites, and utilisation is an operator's secret. The chapter uses round numbers, labelled, to show the shape of the sum, not its value: <V of="cost.capex_rack_usd" fmt="usd" /> a rack written off over <V of="cost.years" fmt="int" /> years, PUE <V of="cost.pue" fmt="num" />, <V of="cost.usd_per_kwh" fmt="usd" /> per kWh and <V of="cost.utilisation" fmt="pct" /> utilisation. Two inputs are not invented: the rack draws its stated <V of="cost.rack_w" fmt="watts" /> (NVIDIA's GB200 NVL72 figure, taken as its draw all year), and serves the <V of="cost.tok_s" fmt="int" /> output tokens a second that [chapter 8](/learn/08-disaggregated-inference)'s simulated rack sustained within its latency targets.
+
+With those inputs a million output tokens costs <V of="tco.base.usd_per_mtok" fmt="usd" />, and <V of="tco.base.capex_share" fmt="pct" /> of it is capital: electricity is <V of="tco.base.energy_usd_yr" fmt="usd" /> a year against <V of="tco.base.capex_yr" fmt="usd" /> of write-off. That is the usual shape for AI hardware today: the machine costs far more than its electricity, so idle hardware is the expensive kind. Cheap capital, cheap power and high utilisation give <V of="tco.low.usd_per_mtok" fmt="usd" />; dear capital, dear power and half-idle hardware give <V of="tco.high.usd_per_mtok" fmt="usd" />: a dearer rack's cost spread over only <V of="tco.high.tokens_yr" fmt="tokens" /> tokens a year.
+
+**Tokens per megawatt.** On the same basis (rack at its stated power, times PUE) the rack serves <V of="tco.base.tok_s_per_mw" fmt="int" /> output tokens a second per megawatt of facility power, on average over the year. Chapter 8 quotes <V of="dis.12-6.nvlink.b200.tok_s_per_mw" fmt="int" />: a different basis, the simulator's GPU power alone while serving, with no idle time. Both are honest; a tokens-per-megawatt figure means little until its basis is stated.
+
+**What moves the number.** Utilisation and throughput divide the capital, so everything in the earlier chapters that raises the tokens a rack serves within its targets (the right pool split, keeping the KV hand-off on NVLink, batching) lowers cost per token roughly in proportion. At 6:12, chapter 8's rack met its targets for only <V of="dis.6-12.nvlink.b200.slo" fmt="pct" /> of requests: the same capital, far fewer useful tokens. Energy matters most where power, not money, is the limit: a site with a fixed number of megawatts serves at most its tokens per megawatt times its megawatts.
+
+</Layer>
+
+<Callout kind="illustrative">
+
+Capital cost, write-off period, PUE, electricity price and utilisation are illustrative round numbers, not prices or quotes. The sum leaves out networking beyond the rack's share, storage, buildings, staff, maintenance, financing and software. The token rate is one simulated model and workload on the simulator's B200 preset, counting output tokens only; the prompt tokens processed alongside (<V of="dis.meta.prompt_tok_s" fmt="int" /> a second here) are not counted.
+
+</Callout>
+
+<Layer kind="maths">
+
+With capital $C$ written off over $Y$ years, rack power $P$, facility overhead PUE, electricity price $p_e$ per kWh, $h =$ <V of="cost.hours" fmt="int" /> hours a year, a sustained output rate $R$ and utilisation $u$:
+
+$$
+\text{cost per token} = \frac{C/Y + (P/1000)\cdot \text{PUE}\cdot h \cdot p_e}{R\, u\, h \cdot 3600},
+\qquad
+\frac{\text{tokens/s}}{\text{MW}} = \frac{R\,u}{P\cdot \text{PUE}/10^{6}}.
+$$
+
+</Layer>
+
+<Layer kind="code">
+
+The sum, cut from [`src/lib/racks/model.ts`](https://github.com/BrendanJamesLynskey/ai-racks-explained/blob/main/src/lib/racks/model.ts):
+
+```ts
+const energyKwh = (rackW / 1000) * pue * HOURS_PER_YEAR;
+const energyUsd = energyKwh * usdPerKwh;
+const capexYr = capex / years;
+const tokensYr = tokS * util * HOURS_PER_YEAR * 3600;
+const total = capexYr + energyUsd;
+```
+
+</Layer>
+
+<Callout kind="deeper">
+
+- Companion sites: [Inference Trade-offs, hardware and cost](https://inference-tradeoffs-explained.vercel.app/learn/12-hardware-and-cost) (cost per token across serving levers, from the same simulator).
+- InfSim series: [the datacentre view](https://brendanjameslynskey.github.io/InfSim_07_Power_and_Energy/#slide-11) and [power metrics checklist](https://brendanjameslynskey.github.io/InfSim_07_Power_and_Energy/#slide-12).
+- NVIDIA GPU series: [bandwidth, latency and cost at scale](https://brendanjameslynskey.github.io/NVIDIA_GPU_13_Networking_InfiniBand_BlueField/#slide-10) and [what process and packaging mean for AI engineers](https://brendanjameslynskey.github.io/NVIDIA_GPU_25_Process_and_Packaging/#slide-10).
+
+</Callout>

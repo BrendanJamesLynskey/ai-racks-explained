@@ -6,6 +6,7 @@
 import Link from "next/link";
 
 import { ValidationTable } from "@/components/mdx/Tables";
+import { DISAGG } from "@/lib/racks/disagg";
 import { ACCESSED, validation } from "@/lib/racks/model";
 import { formatValue, lookup } from "@/lib/racks/values";
 import { pct } from "@/lib/format";
@@ -67,7 +68,8 @@ export default function AboutPage(): JSX.Element {
           </a>{" "}
           series. NVIDIA&apos;s rack-scale systems are the main worked example
           because their specifications and reference designs are published in
-          detail; other designs come in a later chapter.
+          detail; chapter 10 covers other designs. Chapter 8, on disaggregated
+          inference, runs a separate, tested simulator in the browser.
         </p>
 
         <h2>The model</h2>
@@ -81,7 +83,35 @@ export default function AboutPage(): JSX.Element {
           store-and-forward transfers along a chain of links, the wiring and
           bandwidth of an NVLink domain, ring all-reduce on real numbers, and
           the switches, links and transceivers of fat-tree fabrics, including
-          the rail-aligned rules of a published reference architecture.
+          the rail-aligned rules of a published reference architecture. For
+          chapters 6 to 11 it adds a rack&apos;s power shelves and bus currents,
+          power smoothing with stored energy, the coolant loop from Q = ṁ c
+          <sub>p</sub> ΔT, where a training job&apos;s traffic lands on NVLink
+          domains, checkpoint intervals by Young&apos;s rule, hop counts and
+          bisections of a torus, and cost per token.
+        </p>
+        <p>
+          Chapter 8 does not use this model. It runs{" "}
+          <a href={DISAGG.simulator} className={A}>
+            Disaggregated_Inference_Sim
+          </a>
+          &apos;s own JavaScript engine, vendored byte for byte at commit{" "}
+          <code>{DISAGG.commit.slice(0, 7)}</code>, in a Web Worker.{" "}
+          <a href={repoFile("scripts/disagg_reference.py")} className={A}>
+            scripts/disagg_reference.py
+          </a>{" "}
+          runs the simulator&apos;s Python package at the same commit on the
+          same requests, and the unit tests require the browser engine to
+          reproduce every request&apos;s timestamps bit for bit and every
+          recorded summary the chapter quotes. The simulator&apos;s own
+          validation against published serving results is section 22 of its{" "}
+          <a
+            href={`${DISAGG.simulator}/blob/${DISAGG.commit}/examples/results.md`}
+            className={A}
+          >
+            results.md
+          </a>
+          .
         </p>
         <ul>
           <li>
@@ -102,6 +132,13 @@ export default function AboutPage(): JSX.Element {
             Optics power uses a watts-per-transceiver you choose: it is
             illustrative, because the sources used do not publish per-port
             power.
+          </li>
+          <li>
+            Power smoothing assumes a square-wave load and a perfect store; the
+            coolant loop takes an illustrative share of heat on cold plates and
+            illustrative temperature rises; checkpoint intervals apply one
+            published run&apos;s interruption rate to every job size; every
+            price in the cost chapter is illustrative.
           </li>
         </ul>
 
@@ -126,11 +163,13 @@ export default function AboutPage(): JSX.Element {
           The model is checked against published figures that it does not take
           as inputs: rack-level NVLink and HBM totals from per-GPU figures, the
           NVL72 wiring (links equal switch ports), a switch tray&apos;s
-          bandwidth, the size of a two-tier fat tree, and the leaf, spine and
-          core switch counts of the published SuperPOD design. Across{" "}
-          {rows.length} checks the model is between {lo.toFixed(4)} and{" "}
-          {hi.toFixed(4)} of the published value. The largest gaps are rounding
-          in the published figures: Vera Rubin NVL72&apos;s rack HBM bandwidth (
+          bandwidth, the size of a two-tier fat tree, the leaf, spine and core
+          switch counts of the published SuperPOD design, and the totals AMD and
+          AWS state for their rack- and server-scale systems against their
+          per-chip figures. Across {rows.length} checks the model is between{" "}
+          {lo.toFixed(4)} and {hi.toFixed(4)} of the published value. The
+          largest gaps are rounding in the published figures: Vera Rubin
+          NVL72&apos;s rack HBM bandwidth (
           {formatValue(lookup("val.vr-hbm-bw.published"), "rate")}) is{" "}
           {pct(1 / (lookup("val.vr-hbm-bw.ratio") as number) - 1, 1)} more than
           72 times its per-GPU figure, and &ldquo;over 10,000 GPUs&rdquo; for a

@@ -1,0 +1,58 @@
+<TrainingWidget>
+  <Eq
+    label="A GPU's rank is its data-parallel replica times the pipeline stages plus its stage, times the tensor-parallel size, plus its tensor-parallel index; its NVLink domain is the rank divided by the domain size, rounded down"
+    tex="\text{rank} = \big(\htmlClass{hl-dp}{d}\cdot PP + \htmlClass{hl-pp}{p}\big)\cdot TP + \htmlClass{hl-tp}{t}, \qquad \text{domain} = \left\lfloor \frac{\text{rank}}{N_{\text{NVLink}}} \right\rfloor"
+  />
+</TrainingWidget>
+
+<Layer kind="concept">
+
+A model too large for one GPU is split three ways ([Training, chapters 11 and 12](https://transformer-training-explained.vercel.app/training/12-model-parallelism) explain each). **Tensor parallelism** splits every layer across a few GPUs, which then all-reduce their partial results twice per layer, every micro-batch. **Pipeline parallelism** gives each group of layers to a different set of GPUs and passes activations from stage to stage. **Data parallelism** runs copies of the whole arrangement on different data and averages their gradients once a step, which can overlap with the backward pass. The traffic falls in that order. Narayanan et al. (2021) give the rule for servers of $g$ GPUs: tensor parallelism up to degree $g$, inside the server's NVLink domain, then pipeline parallelism across servers; data parallelism, the lightest, goes outermost.
+
+The animation places a small job, one tensor-parallel group per frame, in the order Llama 3's training used: tensor-parallel ranks innermost, then pipeline stage, then replica. Each line joins a group to the stage before it: green when the activations stay on NVLink, dashed blue when they cross the network.
+
+**Llama 3 405B, re-housed.** One stage of Llama 3 405B's pre-training ran on <V of="llama.gpus" fmt="int" /> H100 GPUs as TP <V of="llama.tp" fmt="int" /> × PP <V of="llama.pp" fmt="int" /> × DP <V of="llama.dp" fmt="int" />, eight GPUs to an NVLink server. On those servers, all <V of="lay.l8x16x128.d8.tp_groups" fmt="int" /> tensor-parallel groups fit inside one server, and every one of the <V of="lay.l8x16x128.d8.pp_hops" fmt="int" /> pipeline hops crosses the network (<V of="lay.l8x16x128.d8.pp_net" fmt="int" />). Laid out the same way on NVL72 racks, the job fills <V of="lay.l8x16x128.d72.domains" fmt="int" /> racks and only <V of="lay.l8x16x128.d72.pp_net" fmt="int" /> of the pipeline hops cross a rack boundary; the rest move to NVLink. The data-parallel gradient averaging crosses the network either way (<V of="lay.l8x16x128.d72.dp_net" fmt="int" /> of <V of="lay.l8x16x128.d72.dp_groups" fmt="int" /> groups). This is an illustration of the layout rule, not a description of any real deployment.
+
+**Interruptions.** At this scale, failure is routine. Over a 54-day period of Llama 3 405B pre-training Meta counted <V of="llama.unexpected" fmt="int" /> unexpected interruptions; about 78% were confirmed or suspected hardware issues, and GPU issues alone were 58.7% (the paper's Table 5). In synchronous training one failed GPU stops the whole job, which restarts from its last checkpoint. As one rate, that is <V of="llama.rate" fmt="num" /> interruptions per GPU-hour, so a job of <V of="ckpt.n16384.s60.gpus" fmt="int" /> GPUs is interrupted every <V of="ckpt.n16384.s60.mtbf_s" fmt="time" /> on average. Young's rule (1974) sets the checkpoint interval at $\sqrt{2\,\delta M}$ for a save time $\delta$ and mean time between failures $M$: with a 60 s save, every <V of="ckpt.n16384.s60.tau_s" fmt="time" />, losing about <V of="ckpt.n16384.s60.waste" fmt="pct" /> of the time. At <V of="ckpt.n100000.s60.gpus" fmt="int" /> GPUs that rises to <V of="ckpt.n100000.s60.waste" fmt="pct" />, which is why fast checkpointing, quick restart and automatic diagnosis matter as much as the GPUs ([Training, chapter 15](https://transformer-training-explained.vercel.app/training/15-running-a-real-job)).
+
+<CheckpointTable />
+
+</Layer>
+
+<Callout kind="illustrative">
+
+The 60 s save time is illustrative. The interruption rate is one run's (H100 servers, every cause counted together) applied to every job size; real rates depend on hardware, software and operations. Young's rule is a first-order approximation. The layouts fill domains in rank order, with no topology-aware placement, and ignore context parallelism (which Llama 3 also used at long context).
+
+</Callout>
+
+<Layer kind="maths">
+
+With $N$ GPUs failing independently at $\lambda$ per GPU-hour, the job's mean time between interruptions is $M = 1/(\lambda N)$. A checkpoint every $\tau$ that takes $\delta$ to write loses, to first order, $\delta/\tau$ to saving and $\tau/2M$ to recomputing the work since the last checkpoint:
+
+$$
+\text{lost} \approx \frac{\delta}{\tau} + \frac{\tau}{2M}, \qquad \frac{d\,\text{lost}}{d\tau} = 0 \;\Rightarrow\; \tau^{*} = \sqrt{2\,\delta M}.
+$$
+
+From the Llama 3 record, $\lambda = 419 / (16{,}384 \times 54 \times 24)$ per GPU-hour.
+
+</Layer>
+
+<Layer kind="code">
+
+Young's interval, cut from [`src/lib/racks/model.ts`](https://github.com/BrendanJamesLynskey/ai-racks-explained/blob/main/src/lib/racks/model.ts):
+
+```ts
+const lam = failureRate() / 3600;
+const mtbf = 1 / (lam * nGpus);
+const tau = Math.sqrt(2 * saveS * mtbf);
+```
+
+</Layer>
+
+<Callout kind="deeper">
+
+- Companion sites: [Training, data parallelism](https://transformer-training-explained.vercel.app/training/11-data-parallelism), [model parallelism](https://transformer-training-explained.vercel.app/training/12-model-parallelism) and [slow links](https://transformer-training-explained.vercel.app/training/13-slow-links); this site's [chapter 4](/learn/04-scale-up-nvlink) (all-reduce inside the rack) and [chapter 5](/learn/05-scale-out-network) (the fabric between racks).
+- NVIDIA GPU series: [SuperPOD, the hyperscale cluster blueprint](https://brendanjameslynskey.github.io/NVIDIA_GPU_11_Datacenter_Platforms/#slide-08), [SHARP in-network reductions](https://brendanjameslynskey.github.io/NVIDIA_GPU_13_Networking_InfiniBand_BlueField/#slide-07) and [NCCL and the all-reduce path](https://brendanjameslynskey.github.io/NVIDIA_GPU_13_Networking_InfiniBand_BlueField/#slide-09).
+- Grattafiori et al., [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783) (Table 4, section 3.3.4); Narayanan et al., [Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM](https://arxiv.org/abs/2104.04473); Young, [A first order approximation to the optimum checkpoint interval](https://doi.org/10.1145/361147.361115).
+
+</Callout>

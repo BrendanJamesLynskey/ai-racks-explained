@@ -1,0 +1,72 @@
+<PowerWidget>
+  <Eq
+    label="The grid's draw through the high phase is the larger of the average power and the high-phase power less the stored energy spread over the high phase"
+    tex="\htmlClass{hl-grid}{P_{\text{grid}}} = \max\!\left(\bar P,\; \htmlClass{hl-load}{P_{\text{hi}}} - \frac{\htmlClass{hl-store}{E}}{t_{\text{hi}}}\right), \qquad \bar P = \frac{P_{\text{hi}}\,t_{\text{hi}} + P_{\text{lo}}\,t_{\text{lo}}}{t_{\text{hi}} + t_{\text{lo}}}"
+  />
+</PowerWidget>
+
+<Layer kind="concept">
+
+A GB200 NVL72 rack draws about <V of="sys.gb200-nvl72.rack_power_w" fmt="watts" />, NVIDIA's own figure in the DGX GB200 user guide. Spread over its <V of="sys.gb200-nvl72.gpus" fmt="int" /> GPUs that is <V of="pow.per_gpu_w" fmt="watts" /> each, against a Blackwell GPU's maximum of <V of="gpu.b200.tdp_w" fmt="watts" />: the rest goes to the Grace CPUs, the NVLink switch trays, network cards, fans and conversion losses.
+
+**Power shelves.** The rack does not take mains power into each tray. <V of="pow.shelves" fmt="int" /> power shelves, each holding <V of="sys.gb200-nvl72.psus_per_shelf" fmt="int" /> supplies of <V of="sys.gb200-nvl72.psu_w" fmt="watts" />, convert AC to a DC bus of about <V of="pow.dc_v" fmt="int" /> V. That is <V of="pow.installed_w" fmt="watts" /> of supplies, arranged N+N: either half can carry the rack, so <V of="pow.usable_w" fmt="watts" /> survives the loss of half of them, <V of="pow.margin" fmt="num" /> times the rack's draw.
+
+**The busbar.** At <V of="pow.dc_v" fmt="int" /> V, <V of="sys.gb200-nvl72.rack_power_w" fmt="watts" /> is <V of="pow.busbar_a" fmt="int" /> A, carried by copper bars down the back of the rack. Current is what costs copper and heat: the loss in a conductor is I²R, so for the same power it falls with the square of the voltage. NVIDIA's plan for racks of <V of="fac.power.mw_rack_w" fmt="watts" /> (stated for 2027, so planned, not shipping) is to bring <V of="fac.power.hvdc_v" fmt="int" /> V DC to the rack instead of <V of="fac.power.busbar_v" fmt="int" /> V: it says a 1 MW rack at 54 V would need up to <V of="fac.power.copper_1mw_kg" fmt="int" /> kg of busbar copper.
+
+<BusbarTable />
+
+The copper column is our extrapolation, not NVIDIA's: copper in proportion to current, at the current density of NVIDIA's 1 MW, 54 V example.
+
+**Power smoothing.** Training is synchronous. Every GPU computes, then every GPU waits for the same all-reduce, so a whole hall's power rises and falls together; the Llama 3 paper reports fluctuations "on the order of tens of megawatts". The animation shows one rack's share. With no storage, the grid sees the full swing. GB300 NVL72's power supplies hold <V of="fac.power.storage_j_per_gpu" fmt="int" /> J per GPU in capacitors (NVIDIA's figure). If the load swings every 0.05 s, that store flattens the grid's draw completely and cuts the peak by <V of="smooth.fast.gb300.peak_cut" fmt="pct" />. If it swings every quarter of a second, the store runs empty in each high phase and the cut falls to <V of="smooth.mid.gb300.peak_cut" fmt="pct" />. At one second it is <V of="smooth.slow.gb300.peak_cut" fmt="pct" />. Capacitors are for sub-second ripple; slower swings need the other tools NVIDIA describes (power caps that ramp gradually, and a "power burner" that keeps GPUs drawing while the job pauses) or batteries outside the rack. NVIDIA reports a 30% cut in peak grid demand on a real training run; that is its measurement, quoted, not this model's output.
+
+**Tokens per megawatt.** Power is now the scarce input for many AI data centres, so serving efficiency is often quoted per megawatt. Chapter 8's simulated rack produces <V of="dis.12-6.nvlink.b200.tok_s_per_mw" fmt="int" /> output tokens a second per megawatt of GPU power, using the simulator's illustrative power coefficients; [chapter 11](/learn/11-cost) puts the whole rack's power and a facility overhead on top. Vendors quote this metric too: NVIDIA says Vera Rubin NVL72 "delivers up to 10x more tokens per megawatt than NVIDIA GB200 NVL72", a claim we attribute and do not model.
+
+</Layer>
+
+<Callout kind="illustrative">
+
+The load's shape is illustrative: a square wave between the rack's stated power and half of it, with equal phases. Real training steps have their own shape and timing. The 65 J per GPU is GB300 NVL72's stated storage, applied here to the GB200 rack's stated power; 650 J is a "what if" ten times larger. The store is modelled as perfect: no conversion loss, and the controller knows the swing in advance. Every figure and its source: [the specifications](/specs).
+
+</Callout>
+
+<Layer kind="maths">
+
+A rack alternates between $P_{\text{hi}}$ for $t_{\text{hi}}$ and $P_{\text{lo}}$ for $t_{\text{lo}}$, with stored energy $E$. Holding the grid flat at $P_g$ through the high phase takes $(P_{\text{hi}} - P_g)\,t_{\text{hi}} \le E$ from the store, so the lowest flat level is
+
+$$
+P_g = \max\!\left(\bar P,\; P_{\text{hi}} - \frac{E}{t_{\text{hi}}}\right),
+\qquad
+P_{\text{low phase}} = P_{\text{lo}} + \frac{(P_{\text{hi}} - P_g)\,t_{\text{hi}}}{t_{\text{lo}}},
+$$
+
+where the second is the draw that refills the store in the low phase. When $E \ge (P_{\text{hi}} - \bar P)\,t_{\text{hi}}$ both levels equal the average $\bar P$: the grid sees no swing at all.
+
+On the bus, current and resistive loss for power $P$ at voltage $V$ are
+
+$$
+I = \frac{P}{V}, \qquad P_{\text{loss}} = I^2 R \;\Rightarrow\; \frac{P_{\text{loss}}(V)}{P_{\text{loss}}(54\ \text{V})} = \left(\frac{54}{V}\right)^{2}.
+$$
+
+</Layer>
+
+<Layer kind="code">
+
+The smoothing model, cut from [`src/lib/racks/model.ts`](https://github.com/BrendanJamesLynskey/ai-racks-explained/blob/main/src/lib/racks/model.ts):
+
+```ts
+const period = tHi + tLo;
+const pAvg = (pHi * tHi + pLo * tLo) / period;
+const level = Math.max(pAvg, pHi - eStore / tHi);
+const used = (pHi - level) * tHi;
+const low = pLo + used / tLo;
+```
+
+</Layer>
+
+<Callout kind="deeper">
+
+- NVIDIA GPU series: [power delivery, from PSU to die](https://brendanjameslynskey.github.io/NVIDIA_GPU_24_Power_and_Thermal/#slide-02), [transient response](https://brendanjameslynskey.github.io/NVIDIA_GPU_24_Power_and_Thermal/#slide-04), [power capping](https://brendanjameslynskey.github.io/NVIDIA_GPU_24_Power_and_Thermal/#slide-07) and [datacenter engineering, from card to row](https://brendanjameslynskey.github.io/NVIDIA_GPU_24_Power_and_Thermal/#slide-10).
+- InfSim series: [the simulator's power model](https://brendanjameslynskey.github.io/InfSim_07_Power_and_Energy/#slide-03), [energy proportionality](https://brendanjameslynskey.github.io/InfSim_07_Power_and_Energy/#slide-08) and [the datacentre view](https://brendanjameslynskey.github.io/InfSim_07_Power_and_Energy/#slide-11); the same power model across serving levers: [Inference Trade-offs Explained, power and energy](https://inference-tradeoffs-explained.vercel.app/learn/11-power-and-energy).
+- NVIDIA, [800 VDC architecture](https://developer.nvidia.com/blog/nvidia-800-v-hvdc-architecture-will-power-the-next-generation-of-ai-factories/), [GB300 NVL72 power smoothing](https://developer.nvidia.com/blog/how-new-gb300-nvl72-features-provide-steady-power-for-ai/) and the [DGX GB200 user guide](https://docs.nvidia.com/dgx/dgxgb200-user-guide/hardware.html); Grattafiori et al., [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783), section 3.3.4.
+
+</Callout>

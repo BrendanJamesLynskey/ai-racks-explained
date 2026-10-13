@@ -96,3 +96,34 @@ export function fmtWatts(w: number): string {
 export function fmtInt(n: number): string {
   return Math.round(n).toLocaleString("en-GB");
 }
+
+/** A temperature in degrees Celsius. */
+export function fmtTemp(c: number): string {
+  return `${trim(c, 3)} °C`;
+}
+
+/** A price in US dollars (illustrative figures only on this site). */
+export function fmtUsd(v: number): string {
+  if (Math.abs(v) >= 1e6) return `$${trim(v / 1e6, 3)}M`;
+  if (Math.abs(v) >= 1e3) return `$${trim(v / 1e3, 3)}k`;
+  return `$${trim(v, 3)}`;
+}
+
+/** Energy in joules. */
+export function fmtJoules(j: number): string {
+  return si(j, [
+    [1e6, "MJ"],
+    [1e3, "kJ"],
+    [1, "J"],
+  ]);
+}
+
+/** A large count of tokens (millions, billions, trillions). */
+export function fmtTokens(n: number): string {
+  return si(n, [
+    [1e12, "trillion"],
+    [1e9, "billion"],
+    [1e6, "million"],
+    [1, ""],
+  ]).trim();
+}

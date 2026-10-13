@@ -43,3 +43,27 @@ export const FabricWidget = dynamic(() => import("./FabricWidget"), {
   ssr: false,
   loading: loading("animation"),
 });
+export const PowerWidget = dynamic(() => import("./PowerWidget"), {
+  ssr: false,
+  loading: loading("animation"),
+});
+export const CoolingWidget = dynamic(() => import("./CoolingWidget"), {
+  ssr: false,
+  loading: loading("animation"),
+});
+export const DisaggWidget = dynamic(() => import("./DisaggWidget"), {
+  ssr: false,
+  loading: loading("simulation"),
+});
+export const TrainingWidget = dynamic(() => import("./TrainingWidget"), {
+  ssr: false,
+  loading: loading("animation"),
+});
+export const TorusWidget = dynamic(() => import("./TorusWidget"), {
+  ssr: false,
+  loading: loading("animation"),
+});
+export const CostWidget = dynamic(() => import("./CostWidget"), {
+  ssr: false,
+  loading: loading("animation"),
+});

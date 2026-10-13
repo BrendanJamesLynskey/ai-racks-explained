@@ -186,10 +186,21 @@ def stage_counts(reqs, t: float) -> dict[str, int]:
     return c
 
 
+def handoff_mean(reqs) -> float:
+    """Mean seconds from first token to the KV cache landing on the decode pool, over every request that got there.
+    A plain left-to-right sum (not fmean or sum(), which compensate): src/lib/racks/disagg.ts repeats it exactly."""
+    total = 0.0
+    n = 0
+    for r in reqs:
+        if r.kv_ready is not None and r.first_token is not None:
+            total = total + (r.kv_ready - r.first_token)
+            n += 1
+    return total / n
+
+
 def summary_of(m: dict, res) -> dict:
     lat = m["latency_s"]
     e = m["energy"]
-    st = m["stage_breakdown_s"]
     out_tok_s = m["throughput"]["output_tok_per_s"]
     avg_w = e["avg_power_W"]
     return {
@@ -201,7 +212,7 @@ def summary_of(m: dict, res) -> dict:
         "out_tok_s": out_tok_s,
         "avg_w": avg_w,
         "j_per_tok": e["J_per_output_token"],
-        "handoff_mean": st["kv_wait"] + st["kv_transfer"],
+        "handoff_mean": handoff_mean(res.requests),
         "tok_s_per_mw": out_tok_s / (avg_w / 1e6),
         "completed": m["requests"]["completed"],
         "rejected": m["requests"]["rejected"],

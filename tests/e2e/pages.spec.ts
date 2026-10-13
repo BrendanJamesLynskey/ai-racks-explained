@@ -14,6 +14,12 @@ const PAGES = [
   "/learn/03-trays-and-nodes",
   "/learn/04-scale-up-nvlink",
   "/learn/05-scale-out-network",
+  "/learn/06-power",
+  "/learn/07-cooling",
+  "/learn/08-disaggregated-inference",
+  "/learn/09-training-clusters",
+  "/learn/10-other-designs",
+  "/learn/11-cost",
 ];
 
 async function collectErrors(page: Page): Promise<string[]> {
@@ -258,16 +264,45 @@ test("the specs page marks every status and dates every source", async ({
 
 test("the about page shows the validation band", async ({ page }) => {
   await page.goto("/about#validation");
-  await expect(page.locator("[data-check]")).toHaveCount(21);
+  await expect(page.locator("[data-check]")).toHaveCount(27);
   await expect(
     page.locator("[data-check='superpod-16su-core'] td").last(),
   ).toHaveText("1.0000");
 });
 
-test("the chapter index lists the chapters to come, unlinked", async ({
+test("the chapter index lists all eleven chapters, each linked", async ({
   page,
 }) => {
   await page.goto("/learn");
-  await expect(page.locator("[data-planned]")).toHaveCount(6);
-  await expect(page.locator("[data-planned] a")).toHaveCount(0);
+  await expect(page.locator("[data-planned]")).toHaveCount(0);
+  await expect(page.locator("main ol a[href^='/learn/']")).toHaveCount(11);
+});
+
+test("the specs page lists power, cooling, other designs and the illustrative cost inputs", async ({
+  page,
+}) => {
+  await page.goto("/specs");
+  for (const id of [
+    "fac-power",
+    "fac-cooling",
+    "physics",
+    "others",
+    "llama3",
+    "cost",
+  ])
+    await expect(page.locator(`#${id}`)).toBeVisible();
+  await expect(page.locator("#other-helios")).toContainText("planned");
+  expect(
+    await page.locator("[data-status='illustrative']").count(),
+  ).toBeGreaterThan(4);
+});
+
+test("chapter 8 quotes the simulator's recorded runs and links its validation", async ({
+  page,
+}) => {
+  await page.goto("/learn/08-disaggregated-inference");
+  await expect(page.locator("[data-run]")).toHaveCount(12 + 3);
+  await expect(
+    page.locator("a[href*='Disaggregated_Inference_Sim/blob/']").first(),
+  ).toBeVisible();
 });
