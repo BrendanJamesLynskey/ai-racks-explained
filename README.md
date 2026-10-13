@@ -35,11 +35,12 @@ and the slides of the
 ## Part of
 
 This repository is brief 31 of a programme of companion sites. Part A built
-the model, the sourced data and chapters 1–5; part B (this state) adds
+the model, the sourced data and chapters 1–5; part B adds
 chapters 6–11: power, cooling, disaggregated inference on racks (driven by the
 [Disaggregated_Inference_Sim](https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim)),
-training clusters, other designs and cost; part C makes Racks live in the
-shared site switch.
+training clusters, other designs and cost; part C (this state) makes Racks
+live in the shared site switch and links it from the Serving, Trade-offs and
+Training sites.
 
 ## Chapters
 
@@ -263,13 +264,13 @@ Vercel. No database and no sign-in: every page is static.
 Copied from [gpu-kernels-explained](https://github.com/BrendanJamesLynskey/gpu-kernels-explained)
 at commit `f1dfd1a`:
 
-| Here                                                                                                           | From                                                                                                  |
-| -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `tailwind.config.ts`, `src/app/layout.tsx`, `src/app/learn/`, `src/lib/mdx/`, `Layer*.tsx`, `MdxTable.tsx`     | identical apart from titles and chapters                                                              |
-| `src/components/ui/SiteSwitch.tsx`                                                                             | **byte-identical** to every companion site (sha256 `d9de1d09…`); Racks is "(soon)" there until part C |
-| `src/components/anim/`, `src/lib/anim/`, `Controls.tsx`, `Callout.tsx`, `Eq.tsx`, `useSvgFont.ts`, `Hatch.tsx` | unchanged                                                                                             |
-| `src/app/globals.css`, `src/lib/viz/palette.ts`                                                                | the link colours (`LINK_COLOUR`) and their equation highlights added                                  |
-| CI, Playwright, Vitest and Lighthouse configs, `scripts/`, `RUNBOOK.md`                                        | adapted (new model, pages and chapters)                                                               |
+| Here                                                                                                           | From                                                                                             |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `tailwind.config.ts`, `src/app/layout.tsx`, `src/app/learn/`, `src/lib/mdx/`, `Layer*.tsx`, `MdxTable.tsx`     | identical apart from titles and chapters                                                         |
+| `src/components/ui/SiteSwitch.tsx`                                                                             | **byte-identical** to every companion site (sha256 `6f3feef8…`); Racks is live there from part C |
+| `src/components/anim/`, `src/lib/anim/`, `Controls.tsx`, `Callout.tsx`, `Eq.tsx`, `useSvgFont.ts`, `Hatch.tsx` | unchanged                                                                                        |
+| `src/app/globals.css`, `src/lib/viz/palette.ts`                                                                | the link colours (`LINK_COLOUR`) and their equation highlights added                             |
+| CI, Playwright, Vitest and Lighthouse configs, `scripts/`, `RUNBOOK.md`                                        | adapted (new model, pages and chapters)                                                          |
 
 New here: the rack model and its port, the sourced tables
 (`src/components/mdx/Tables.tsx`), `/specs`, the eleven widgets, and the
