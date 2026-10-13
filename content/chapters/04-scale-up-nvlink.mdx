@@ -1,0 +1,79 @@
+<RingWidget>
+  <Eq
+    label="Ring all-reduce: a reduce-scatter and an all-gather, each moving n minus 1 over n of the vector over each GPU's link, so two times n minus 1 over n times S over B in all"
+    tex="T_{\text{ring}} = \htmlClass{hl-rs}{\frac{n-1}{n}\,\frac{S}{B}} + \htmlClass{hl-ag}{\frac{n-1}{n}\,\frac{S}{B}} = \frac{2(n-1)}{n}\,\frac{S}{\htmlClass{hl-nvl}{B}}"
+  />
+</RingWidget>
+
+<Layer kind="concept">
+
+Many of the communications in a model split over GPUs are **collectives**: every GPU contributes and every GPU receives. Tensor parallelism ends each attention and MLP block with an **all-reduce** (every GPU needs the sum of everyone's partial results); expert parallelism routes tokens to the GPUs holding their experts with an **all-to-all**.
+
+The animation runs the classic ring all-reduce on real numbers. Each GPU cuts its vector into $n$ chunks. In the **reduce-scatter** half, every GPU sends one chunk to its neighbour, which adds it to its own; after $n-1$ steps each GPU owns one complete chunk of the sum. In the **all-gather** half, the finished chunks travel round the ring for another $n-1$ steps. Every link is busy every step, and each GPU sends $2(n-1)/n$ of its vector, close to twice its size, whatever $n$ is: the ring is bandwidth-optimal (Patarasuk and Yuan, 2009).
+
+So the time is set by the link. Over NVLink, at <V of="tp.n8.64MB.nvlink_bw" fmt="rate" /> per direction, a 64 MB all-reduce over 8 GPUs takes <V of="tp.n8.64MB.t_nvlink" fmt="time" />; over the GPU's <V of="sys.gb200-nvl72.nic_bps" fmt="bits" /> network port it takes <V of="tp.n8.64MB.t_nic" fmt="time" />, <V of="tp.n8.64MB.ratio" fmt="num" /> times longer. A tensor-parallel group does this twice per layer, every layer, so it is kept inside the NVLink domain.
+
+NVLink switches can also do the reduction themselves: NVIDIA's switches since the third-generation NVSwitch add the vectors in the network (SHARP in-network reduction, with multicast), so each GPU sends its vector once and receives the sum once, <V of="tp.n8.64MB.t_switch" fmt="time" /> for the same 64 MB.
+
+</Layer>
+
+## The NVL72 rack as one domain
+
+<Nvl72Diagram />
+
+An NVL72 rack wires all <V of="sys.gb200-nvl72.gpus" fmt="int" /> GPUs together through <V of="nvl.chips" fmt="int" /> switch chips. Each GPU has <V of="gpu.b200.nvlink_links" fmt="int" /> NVLinks and each switch chip has <V of="sys.gb200-nvl72.ports_per_switch_chip" fmt="int" /> ports, so the GPUs' <V of="nvl.links" fmt="int" /> links fill the chips' <V of="nvl.ports" fmt="int" /> ports exactly, one link from every GPU to every chip. Every pair of GPUs is one switch hop apart, at the full <V of="nvl.per_gpu_bidir" fmt="rate" /> per GPU (both directions), <V of="nvl.total_bidir" fmt="rate" /> across the rack (NVIDIA rounds it to <V of="sys.gb200-nvl72.nvlink_total" fmt="rate" />). This is what NVIDIA means by the rack acting as one GPU: for collectives, any 72-GPU group is as close as two GPUs on one tray.
+
+It matters most for **all-to-all**. An expert-parallel layer across all <V of="sys.gb200-nvl72.gpus" fmt="int" /> GPUs sends most of each GPU's tokens to other GPUs; 64 MB per GPU takes <V of="a2a.64MB.nvlink" fmt="time" /> inside the rack, and would take <V of="a2a.64MB.net" fmt="time" /> over the network ports.
+
+<Callout kind="illustrative">
+
+Bandwidth terms only: no latency, no protocol overhead, perfect overlap of sends. NVLink figures are NVIDIA's bidirectional totals halved. The in-switch reduction is modelled as each GPU sending and receiving the vector once; how close real collectives come to that depends on the library and the message size.
+
+</Callout>
+
+<Layer kind="maths">
+
+With $n$ GPUs, vector size $S$ and link bandwidth $B$ per direction, the ring sends $n-1$ chunks of $S/n$ in each half:
+
+$$
+T_{\text{ring}} = 2\,\frac{n-1}{n}\,\frac{S}{B}, \qquad
+T_{\text{in-switch}} = \frac{S}{B}, \qquad
+T_{\text{all-to-all}} = \frac{n-1}{n}\,\frac{S}{B}.
+$$
+
+The NVL72 wiring: $72 \times 18 = 1296$ GPU links and $18 \times 72 = 1296$ switch ports. A switch tray's two chips carry $2 \times 72 \times 50\ \text{GB/s} \times 8 =$ <V of="nvl.tray_bits_dir" fmt="bits" /> per direction, which is the figure in NVIDIA's DGX GB200 user guide.
+
+</Layer>
+
+<Layer kind="code">
+
+The reduce-scatter half, cut from [`src/lib/racks/model.ts`](https://github.com/BrendanJamesLynskey/ai-racks-explained/blob/main/src/lib/racks/model.ts):
+
+```ts
+for (let s = 0; s < n - 1; s++) {
+  const sends: RingSend[] = [];
+  for (let g = 0; g < n; g++) {
+    const c = mod(g - s, n);
+    sends.push({ from: g, to: (g + 1) % n, chunk: c, value: cur[g]![c]! });
+  }
+```
+
+</Layer>
+
+## Three generations of NVLink domain
+
+<SpecTable
+  kind="gpu"
+  ids="h100,b200,rubin"
+  fields="nvlink_bidir,nvlink_links"
+/>
+
+NVLink 4 (Hopper) connected 8 GPUs in one server through its own NVSwitches; NVLink 5 (Blackwell) reaches 72 GPUs in one rack; NVLink 6 (Vera Rubin, preliminary) keeps 72 GPUs and raises each GPU's links to <V of="gpu.rubin.nvlink_bidir" fmt="rate" />, <V of="sys.vr-nvl72.nvlink_total" fmt="rate" /> across the rack.
+
+<Callout kind="deeper">
+
+- How tensor and pipeline parallelism split a model: [Training, chapter 12](https://transformer-training-explained.vercel.app/training/12-model-parallelism) and [Serving, chapter 9](https://llm-inference-explained.vercel.app/learn/09-parallelism); reductions inside one GPU: [GPU Kernels Explained, chapter 8](https://gpu-kernels-explained.vercel.app/learn/08-reductions); a torus instead of a switch: [Systolic Arrays Explained, the TPU](https://systolic-arrays-explained.vercel.app/learn/07-the-tpu).
+- NVIDIA GPU series: [why scale-up matters, the all-reduce bill](https://brendanjameslynskey.github.io/NVIDIA_GPU_05_NVLink_NVSwitch/#slide-01), [NVSwitch, point-to-point becomes a fabric](https://brendanjameslynskey.github.io/NVIDIA_GPU_05_NVLink_NVSwitch/#slide-07) and [NVL72, the rack as a GPU](https://brendanjameslynskey.github.io/NVIDIA_GPU_05_NVLink_NVSwitch/#slide-08).
+- NVIDIA, [GB200 NVL72 technical blog](https://developer.nvidia.com/blog/nvidia-gb200-nvl72-delivers-trillion-parameter-llm-training-and-real-time-inference/) and [NVLink and NVLink Switch](https://www.nvidia.com/en-us/data-center/nvlink/); Patarasuk and Yuan, [Bandwidth optimal all-reduce algorithms for clusters of workstations](https://doi.org/10.1016/j.jpdc.2008.09.002).
+
+</Callout>

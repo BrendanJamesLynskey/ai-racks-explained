@@ -1,0 +1,76 @@
+<PathWidget>
+  <Eq
+    label="With C equal chunks, the transfer takes one chunk's time over every link plus C minus 1 chunk times on the slowest link"
+    tex="T = \sum_{i} \frac{\htmlClass{hl-chunk}{S / C}}{B_i} + (C - 1)\,\frac{\htmlClass{hl-chunk}{S / C}}{\htmlClass{hl-slow}{B_{\min}}} \;\xrightarrow{\;C \to \infty\;}\; \frac{S}{\htmlClass{hl-slow}{B_{\min}}}"
+  />
+</PathWidget>
+
+<Layer kind="concept">
+
+A GB200 NVL72 **compute tray** is a 1U box with two GB200 superchips: <V of="sys.gb200-nvl72.cpus_per_tray" fmt="int" /> Grace CPUs and <V of="sys.gb200-nvl72.gpus_per_tray" fmt="int" /> Blackwell GPUs. Each Grace connects to its two GPUs over **NVLink-C2C** (<V of="sys.gb200-nvl72.c2c_bidir" fmt="rate" />, both directions together) and has up to <V of="sys.gb200-nvl72.lpddr_per_cpu" fmt="bytes" /> of its own LPDDR5X memory at up to <V of="sys.gb200-nvl72.lpddr_bw_per_cpu" fmt="rate" />. The tray also carries <V of="sys.gb200-nvl72.nics_per_tray" fmt="int" /> ConnectX-7 network cards, one <V of="sys.gb200-nvl72.nic_bps" fmt="bits" /> port per GPU for the compute fabric, and <V of="sys.gb200-nvl72.dpus_per_tray" fmt="int" /> BlueField-3 DPUs for storage and management traffic. The GPUs' NVLinks leave from the back of the tray through cable cartridges to the switch trays.
+
+Data reaches a GPU's HBM by three kinds of path, and the animation runs each one with a 2 GB payload:
+
+- **From the network** (GPUDirect RDMA): the network card writes straight into GPU memory, without a copy through CPU memory. The port is the slow link: the whole path runs at <V of="pipe.rdma.c16.slow_bw" fmt="rate" /> at best.
+- **From Grace's memory** over NVLink-C2C: the way a GPU uses CPU memory as an overflow for its KV cache or for offloaded weights. Here C2C sets the pace, <V of="pipe.grace.c16.slow_bw" fmt="rate" /> per direction: <V of="pipe.grace.c16.total" fmt="time" /> for 2 GB in 16 chunks, against <V of="pipe.rdma.c16.total" fmt="time" /> from the network.
+- **From another GPU** in the rack over NVLink, through the switch trays: <V of="pipe.peer.c16.slow_bw" fmt="rate" /> per direction.
+
+Switch the chunk count. Sent as one piece, a payload crosses each link in turn, so the times add up (<V of="pipe.grace.c1.total" fmt="time" /> from Grace). Cut into chunks, the links work at once on different chunks, and the transfer approaches the slowest link's time (<V of="pipe.grace.c16.efficiency" fmt="pct" /> of it with 16 chunks). Real transfer engines pipeline the same way, in much smaller pieces.
+
+</Layer>
+
+<Callout kind="illustrative">
+
+Peak bandwidths, store-and-forward per chunk, no latency, one transfer at a time. The network path assumes the card's host interface is PCIe Gen5 x16 (ConnectX-7 supports Gen5); the Grace path assumes one GPU pulling from its Grace, whose LPDDR5X bandwidth is shared by the two GPUs of a superchip; NVLink-C2C is NVIDIA's per-GPU bidirectional figure halved.
+
+</Callout>
+
+<Layer kind="maths">
+
+Chunk $c$ starts on link $i$ when it has left link $i-1$ and chunk $c-1$ has left link $i$:
+
+$$
+s_{c,i} = \max\left(f_{c,i-1},\ f_{c-1,i}\right), \qquad f_{c,i} = s_{c,i} + \frac{S/C}{B_i} .
+$$
+
+For identical chunks this flow shop finishes at $T = \sum_i \frac{S/C}{B_i} + (C-1)\frac{S/C}{B_{\min}}$: the first chunk fills the pipe, then the slowest link delivers one chunk per $\frac{S/C}{B_{\min}}$. The tests check the recurrence against this closed form for every path and chunk count.
+
+</Layer>
+
+<Layer kind="code">
+
+The recurrence, cut from [`src/lib/racks/model.ts`](https://github.com/BrendanJamesLynskey/ai-racks-explained/blob/main/src/lib/racks/model.ts):
+
+```ts
+for (let c = 0; c < chunks; c++) {
+  for (let i = 0; i < h; i++) {
+    const a = i > 0 ? finish[c]![i - 1]! : 0.0;
+    const b = c > 0 ? finish[c - 1]![i]! : 0.0;
+    const s0 = a > b ? a : b;
+    start[c]![i] = s0;
+    finish[c]![i] = s0 + size / hops[i]!.bw;
+  }
+}
+```
+
+</Layer>
+
+## The 8-GPU node
+
+Before rack-scale NVLink, the unit was the 8-GPU server: an HGX baseboard with its own NVLink switches, x86 host CPUs over PCIe, and one network card per GPU. It is still the common shape of an air-cooled cluster.
+
+<SpecTable
+  kind="system"
+  ids="dgx-b200"
+  fields="gpus,hbm_total,hbm_bw_total,nvlink_total,nvswitch_chips,nic_bps,node_power_w,rack_units"
+/>
+
+Its NVLink domain ends at the chassis: <V of="sys.dgx-b200.gpus" fmt="int" /> GPUs share <V of="sys.dgx-b200.nvlink_total" fmt="rate" />, and everything beyond them goes over the network. The NVL72 rack moves that boundary out to <V of="sys.gb200-nvl72.gpus" fmt="int" /> GPUs ([chapter 4](/learn/04-scale-up-nvlink)).
+
+<Callout kind="deeper">
+
+- Moving KV caches between GPUs in serving: [Serving, chapter 12](https://llm-inference-explained.vercel.app/learn/12-moving-the-kv-cache).
+- NVIDIA GPU series: [NVLink-C2C, the bridge](https://brendanjameslynskey.github.io/NVIDIA_GPU_15_Grace_CPU_and_GH_GB/#slide-03), [the GB200 superchip](https://brendanjameslynskey.github.io/NVIDIA_GPU_15_Grace_CPU_and_GH_GB/#slide-05), [extended GPU memory](https://brendanjameslynskey.github.io/NVIDIA_GPU_15_Grace_CPU_and_GH_GB/#slide-06), [GPUDirect P2P, RDMA and Storage](https://brendanjameslynskey.github.io/NVIDIA_GPU_14_PCIe_and_GPUDirect/#slide-08) and [HGX, the 8-GPU baseboard](https://brendanjameslynskey.github.io/NVIDIA_GPU_11_Datacenter_Platforms/#slide-03).
+- NVIDIA, [DGX GB200 user guide, hardware](https://docs.nvidia.com/dgx/dgxgb200-user-guide/hardware.html).
+
+</Callout>

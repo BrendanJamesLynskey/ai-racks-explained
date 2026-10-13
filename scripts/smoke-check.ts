@@ -1,0 +1,114 @@
+/**
+ * scripts/smoke-check.ts
+ *
+ * Post-deploy smoke check, adapted from the companion sites'. Fetches every
+ * page and exits non-zero if any fails:
+ *
+ *     pnpm smoke https://ai-racks-explained.vercel.app
+ *
+ * With no argument it checks http://localhost:3000. For a protected
+ * preview deployment, pass the bypass token as VERCEL_BYPASS (sent as the
+ * `x-vercel-protection-bypass` header; never printed).
+ *
+ * Fails when a page is not a 200 (redirects count as failures) or lacks
+ * the content that proves it rendered from the model: the landing page,
+ * /specs and /about must print the model's own numbers (computed here with
+ * the same code), every chapter must render its MDX (a layer, server-
+ * rendered KaTeX and the animation's placeholder), and the header must
+ * carry the four-track site switch with Racks as this site's place.
+ */
+import { fmtRate } from "@/lib/format";
+import { gpu } from "@/lib/racks/model";
+import { formatValue, lookup } from "@/lib/racks/values";
+import { SECTIONS } from "@/lib/mdx/sections";
+
+type Result = { path: string; ok: boolean; detail: string };
+
+const headers: Record<string, string> = process.env.VERCEL_BYPASS
+  ? { "x-vercel-protection-bypass": process.env.VERCEL_BYPASS }
+  : {};
+
+const SWITCH = [
+  'data-site-switch="menu"',
+  'href="https://transformer-training-explained.vercel.app"',
+  'href="https://gpu-kernels-explained.vercel.app"',
+  'href="https://agent-harnesses-explained.vercel.app"',
+  'href="https://agent-protocols-explained.vercel.app"',
+  'href="https://agent-context-explained.vercel.app"',
+  'href="https://agent-orchestration-explained.vercel.app"',
+  'data-site-group="foundations"',
+  'data-site-group="hardware"',
+  'data-site-place="racks"',
+  'data-site-key="inference"',
+];
+
+async function checkPage(
+  base: string,
+  path: string,
+  mustContain: string[],
+): Promise<Result> {
+  try {
+    const res = await fetch(base + path, { redirect: "manual", headers });
+    if (res.status !== 200)
+      return { path, ok: false, detail: String(res.status) };
+    const html = await res.text();
+    const missing = mustContain.filter((s) => !html.includes(s));
+    if (missing.length)
+      return {
+        path,
+        ok: false,
+        detail: `200 but missing ${missing.join(", ")}`,
+      };
+    return { path, ok: true, detail: "200" };
+  } catch (err) {
+    return { path, ok: false, detail: (err as Error).message };
+  }
+}
+
+async function main(): Promise<void> {
+  const base = (process.argv[2] ?? "http://localhost:3000").replace(/\/$/, "");
+  const checks: Promise<Result>[] = [
+    checkPage(base, "/", [
+      "AI Racks Explained",
+      formatValue(lookup("ladder.su.drop"), "num"),
+      formatValue(lookup("ladder.rack.bw"), "rate"),
+      ...SWITCH,
+    ]),
+    checkPage(base, "/specs", [
+      'data-status="spec"',
+      'data-status="derived"',
+      'data-status="undisclosed"',
+      fmtRate(gpu("b300").hbm_bw),
+      "2026-10-13",
+    ]),
+    checkPage(base, "/about", [
+      "Validation band",
+      'data-check="superpod-16su-core"',
+    ]),
+    checkPage(
+      base,
+      "/learn",
+      SECTIONS.map((x) => x.slug),
+    ),
+    ...SECTIONS.map((x) =>
+      checkPage(base, `/learn/${x.slug}`, [
+        'data-layer="concept"',
+        "data-pending-widget",
+        'class="katex"',
+        ...SWITCH,
+      ]),
+    ),
+  ];
+  const results = await Promise.all(checks);
+  let failed = 0;
+  for (const r of results) {
+    if (!r.ok) failed++;
+    console.log(`${r.ok ? "ok  " : "FAIL"} ${r.path} ${r.detail}`);
+  }
+  console.log(
+    `${results.length - failed}/${results.length} checks passed against ${base}`,
+  );
+  if (failed) process.exit(1);
+}
+
+void main();

@@ -1,0 +1,77 @@
+<LadderWidget>
+  <Eq
+    label="The time one GPU needs to move S bytes at a rung is S divided by its bandwidth at that rung: HBM inside the package, NVLink inside the rack, the network beyond it"
+    tex="t = \frac{\htmlClass{hl-payload}{S}}{B}, \qquad B = \begin{cases} \htmlClass{hl-hbm}{B_{\text{HBM}}} & \text{inside the package} \\ \htmlClass{hl-nvl}{B_{\text{NVLink}}} & \text{inside the rack} \\ \htmlClass{hl-net}{B_{\text{network}}} & \text{beyond it} \end{cases}"
+  />
+</LadderWidget>
+
+<Layer kind="concept">
+
+A training or inference cluster is built in rungs, each a box of the rung below. The animation climbs them for **GB200 NVL72** racks, arranged the way NVIDIA's published DGX SuperPOD reference architecture arranges them:
+
+- **The package**: one GPU, two compute dies and their HBM, reading memory at <V of="ladder.package.bw" fmt="rate" />.
+- **The compute tray**: <V of="ladder.tray.gpus" fmt="int" /> GPUs and two Grace CPUs on one 1U tray.
+- **The rack**: <V of="ladder.rack.children" fmt="int" /> compute trays and <V of="sys.gb200-nvl72.switch_trays" fmt="int" /> NVLink switch trays. All <V of="ladder.rack.gpus" fmt="int" /> GPUs share one NVLink domain, so a GPU reaches any other in the rack at <V of="ladder.rack.bw" fmt="rate" /> per direction, exactly as fast as it reaches its neighbour on the same tray.
+- **The scalable unit**: <V of="ladder.su.children" fmt="int" /> racks, <V of="ladder.su.gpus" fmt="int" /> GPUs, joined by an InfiniBand fabric. Each GPU has one <V of="sys.gb200-nvl72.nic_bps" fmt="bits" /> network port: <V of="ladder.su.bw" fmt="rate" /> per direction.
+- **The SuperPOD**: up to <V of="ladder.pod.children" fmt="int" /> scalable units, <V of="ladder.pod.gpus" fmt="int" /> GPUs.
+- **The hall**: sized by power. At about <V of="sys.gb200-nvl72.rack_power_w" fmt="watts" /> per rack, 100 MW of rack power is <V of="ladder.hall.children" fmt="int" /> racks, <V of="ladder.hall.gpus" fmt="int" /> GPUs.
+
+Watch the bars as the camera zooms out. The rack boundary is the cliff: crossing it, a GPU's bandwidth falls <V of="ladder.su.drop" fmt="num" /> times, and beyond it, it never recovers. One gigabyte takes <V of="ladder.package.time" fmt="time" /> to read from HBM, <V of="ladder.rack.time" fmt="time" /> to send over NVLink and <V of="ladder.su.time" fmt="time" /> to send over the network.
+
+That one ratio shapes the rest of the design. Traffic that is heavy and frequent (tensor-parallel all-reduces in every layer, expert-parallel all-to-alls, KV caches handed from prefill to decode) is kept inside the NVLink domain. Traffic that is lighter or can overlap with compute (data-parallel gradient averaging, pipeline-stage activations) crosses the network. The rest of this site follows that line: what is inside the package ([chapter 2](/learn/02-the-package)), on the tray ([chapter 3](/learn/03-trays-and-nodes)), in the rack ([chapter 4](/learn/04-scale-up-nvlink)) and between racks ([chapter 5](/learn/05-scale-out-network)).
+
+</Layer>
+
+<Callout kind="illustrative">
+
+The bars are peak bandwidths from NVIDIA's published figures; achieved rates are lower and latency is not modelled. HBM is a read (or write) rate; NVLink is NVIDIA's bidirectional figure halved; the network figure is one ConnectX-7 port per GPU, as in the DGX GB200 tray (GB300 NVL72 doubles it to <V of="sys.gb300-nvl72.nic_bps" fmt="bits" /> per GPU). The hall rung is an illustrative size: rack power only, with no cooling, networking or facility overhead. Every figure and its source: [the specifications](/specs).
+
+</Callout>
+
+<Layer kind="maths">
+
+At rung $r$ with $N_r$ GPUs and bandwidth $B_r$ per GPU per direction, moving $S$ bytes out of one GPU takes, as a bandwidth term only,
+
+$$
+t_r = \frac{S}{B_r}, \qquad \text{the rung's aggregate is } N_r B_r, \qquad \text{the drop from the rung below is } \frac{B_{r-1}}{B_r}.
+$$
+
+For GB200 the per-GPU figures are $B_{\text{HBM}} =$ <V of="gpu.b200.hbm_bw" fmt="rate" />, $B_{\text{NVLink}} = \tfrac12 \times$ <V of="gpu.b200.nvlink_bidir" fmt="rate" />, and $B_{\text{network}} =$ <V of="sys.gb200-nvl72.nic_bps" fmt="bits" /> $\div 8$. The rack's power per GPU is the rack's power divided by its <V of="sys.gb200-nvl72.gpus" fmt="int" /> GPUs, so the power of a rung is $N_r \times P_{\text{rack}} / 72$; the hall holds $\lfloor 100\ \text{MW} / P_{\text{rack}} \rfloor$ racks.
+
+</Layer>
+
+<Layer kind="code">
+
+The rungs' derived figures, cut from [`src/lib/racks/model.ts`](https://github.com/BrendanJamesLynskey/ai-racks-explained/blob/main/src/lib/racks/model.ts) (the Python reference, `reference/rack_model.py`, is the same, and the unit tests require identical results):
+
+```ts
+return rungs.map((r, i) => ({
+  ...r,
+  i,
+  time: payload / r.bw,
+  power_w: r.gpus * perGpuW,
+  aggregate: r.gpus * r.bw,
+  drop: i > 0 ? rungs[i - 1]!.bw / r.bw : 1.0,
+}));
+```
+
+</Layer>
+
+## What the rack is made of
+
+<SpecTable
+  kind="system"
+  ids="gb200-nvl72"
+  fields="gpus,cpus,compute_trays,gpus_per_tray,switch_trays,switch_chips_per_tray,nvlink_total,hbm_total,hbm_bw_total,nic_bps,rack_power_w,cooling"
+/>
+
+The same rack shape carries the next GPUs: GB300 NVL72 keeps <V of="sys.gb300-nvl72.gpus" fmt="int" /> GPUs and <V of="sys.gb300-nvl72.nvlink_total" fmt="rate" /> of NVLink, and Vera Rubin NVL72, whose NVLink figures NVIDIA marks preliminary, raises the rack's NVLink to <V of="sys.vr-nvl72.nvlink_total" fmt="rate" />. NVIDIA's reference for a Vera Rubin AI factory puts <V of="sys.vr-nvl72.factory_gpus" fmt="int" /> GPUs in <V of="sys.vr-nvl72.factory_w" fmt="watts" />.
+
+<Callout kind="deeper">
+
+- One GPU's own ladder, registers to HBM: [GPU Kernels Explained, chapter 1](https://gpu-kernels-explained.vercel.app/learn/01-memory-hierarchy).
+- Why slow links shape training: [Training, chapter 13](https://transformer-training-explained.vercel.app/training/13-slow-links).
+- NVIDIA GPU series: [GB200 NVL72, the rack is the computer](https://brendanjameslynskey.github.io/NVIDIA_GPU_11_Datacenter_Platforms/#slide-06) and [SuperPOD, the hyperscale cluster blueprint](https://brendanjameslynskey.github.io/NVIDIA_GPU_11_Datacenter_Platforms/#slide-08).
+- NVIDIA, [DGX SuperPOD reference architecture (DGX GB200)](https://docs.nvidia.com/dgx-superpod/reference-architecture-scalable-infrastructure-gb200/latest/network-fabrics.html) and the [DGX GB200 user guide, hardware](https://docs.nvidia.com/dgx/dgxgb200-user-guide/hardware.html).
+
+</Callout>
