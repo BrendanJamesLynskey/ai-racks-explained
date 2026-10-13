@@ -51,6 +51,37 @@ const SHOTS: Shot[] = [
     step: 5,
   },
   { name: "07-specs", path: "/specs" },
+  {
+    name: "08-power",
+    path: "/learn/06-power",
+    widget: "power-widget",
+    step: 9,
+  },
+  {
+    name: "09-cooling",
+    path: "/learn/07-cooling",
+    widget: "cooling-widget",
+    step: 8,
+  },
+  {
+    name: "10-disagg",
+    path: "/learn/08-disaggregated-inference",
+    widget: "disagg-widget",
+    step: 40,
+  },
+  {
+    name: "11-training",
+    path: "/learn/09-training-clusters",
+    widget: "training-widget",
+    step: 9,
+  },
+  {
+    name: "12-torus",
+    path: "/learn/10-other-designs",
+    widget: "torus-widget",
+    step: 3,
+  },
+  { name: "13-cost", path: "/learn/11-cost", widget: "cost-widget", step: 9 },
 ];
 
 async function main(): Promise<void> {
@@ -68,6 +99,9 @@ async function main(): Promise<void> {
     if (s.widget) {
       const fig = page.getByTestId(s.widget);
       await fig.waitFor();
+      const sim = fig.locator("[data-sim]");
+      if (await sim.count())
+        await sim.and(page.locator("[data-sim='ready']")).waitFor();
       if (s.step !== undefined)
         await fig.getByTestId("scrub").fill(String(s.step));
       await fig.screenshot({ path: file });

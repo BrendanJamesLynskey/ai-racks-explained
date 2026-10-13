@@ -12,10 +12,16 @@ import {
 import {
   ACCESSED,
   CLAIMS,
+  COST_ILLUSTRATIVE,
+  FACILITY_RECORDS,
   GPU_RECORDS,
+  LLAMA3_RUN,
+  OTHER_RECORDS,
+  PHYS,
   SOURCES,
   SUPERPOD_RULES,
   SYSTEM_RECORDS,
+  type Field,
 } from "@/lib/racks/model";
 import { repoFile } from "@/lib/site";
 
@@ -27,6 +33,53 @@ export const metadata = {
 
 const A =
   "focus-ring rounded text-accent underline underline-offset-2 dark:text-indigo-300";
+
+const LABELS: Record<string, string> = {
+  gpus: "GPUs in the run",
+  tp: "Tensor parallel",
+  pp: "Pipeline stages",
+  dp: "Data-parallel replicas",
+  days: "Days in the reliability record",
+  unexpected: "Unexpected interruptions",
+  server_gpus: "GPUs per NVLink server",
+  capex_rack_usd: "Capital cost per rack (USD)",
+  years: "Write-off period (years)",
+  pue: "PUE (facility over IT power)",
+  usd_per_kwh: "Electricity (USD per kWh)",
+  utilisation: "Utilisation",
+};
+
+function FieldRows({
+  fields,
+  label,
+}: {
+  fields: Record<string, Field>;
+  label: string;
+}): JSX.Element {
+  return (
+    <div
+      className="my-6 overflow-x-auto"
+      tabIndex={0}
+      role="region"
+      aria-label={label}
+    >
+      <table className="w-full text-sm">
+        <tbody>
+          {Object.entries(fields).map(([k, f]) => (
+            <tr key={k}>
+              <th scope="row" className="text-left font-normal">
+                {FIELD_INFO[k]?.label ?? LABELS[k] ?? k}
+              </th>
+              <td>
+                <FieldCell f={f} k={k} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function SpecsPage(): JSX.Element {
   const gpuFields = Object.keys(GPU_RECORDS[0]!.fields).filter(
@@ -99,6 +152,42 @@ export default function SpecsPage(): JSX.Element {
             </tbody>
           </table>
         </div>
+        {FACILITY_RECORDS.map((r) => (
+          <section key={r.id} aria-labelledby={`fac-${r.id}`}>
+            <h2 id={`fac-${r.id}`}>{r.name}</h2>
+            <SpecTable
+              kind="facility"
+              ids={r.id}
+              fields={Object.keys(r.fields).join(",")}
+            />
+          </section>
+        ))}
+        <h2 id="physics">Physical properties</h2>
+        <p>
+          Water&apos;s specific heat is computed from NIST&apos;s Shomate
+          equation at {PHYS.shomate.T} K (chapter 7); air&apos;s from
+          NASA&apos;s ratio of specific heats and gas constant.
+        </p>
+        <FieldRows fields={PHYS.fields} label="Physical properties" />
+        <h2 id="others">Other rack- and pod-scale designs</h2>
+        {OTHER_RECORDS.map((r) => (
+          <section key={r.id} aria-labelledby={`other-${r.id}`}>
+            <h3 id={`other-${r.id}`}>
+              {r.name}
+              {r.avail.v !== "product" ? ` (${r.avail.v})` : ""}
+            </h3>
+            <SpecTable
+              kind="other"
+              ids={r.id}
+              fields={Object.keys(r.fields).join(",")}
+            />
+          </section>
+        ))}
+        <h2 id="llama3">Llama 3 405B pre-training (chapter 9)</h2>
+        <FieldRows fields={LLAMA3_RUN} label="Llama 3 run" />
+        <h2 id="cost">Illustrative cost inputs (chapter 11)</h2>
+        <p>Round numbers chosen for the picture, not prices or quotes:</p>
+        <FieldRows fields={COST_ILLUSTRATIVE} label="Cost inputs" />
         <h2 id="claims">Quoted claims</h2>
         <p>Shown where relevant, attributed, and never used as model inputs:</p>
         <ul>

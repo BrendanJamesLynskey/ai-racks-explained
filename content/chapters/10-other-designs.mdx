@@ -1,0 +1,68 @@
+<TorusWidget>
+  <Eq
+    label="In a k-ary n-cube with wrap-around links the mean distance is n k to the n plus 1 over 4 times k to the n minus 1; an all-to-all must push N S over 4 bytes each way across the bisection"
+    tex="\overline{h} = \htmlClass{hl-hops}{\frac{n\,k^{\,n+1}}{4\,(k^{n}-1)}}, \qquad T_{\text{all-to-all}} \ge \frac{N\,S}{4\,\htmlClass{hl-bisect}{L_{\text{bisection}}}\,B_{\text{link}}}"
+  />
+</TorusWidget>
+
+<Layer kind="concept">
+
+NVIDIA's racks answer the scale-up question with switches: every GPU has a link to every NVLink switch chip, so any two GPUs in the rack are one switch hop apart ([chapter 4](/learn/04-scale-up-nvlink)). That is not the only answer.
+
+**Google's TPU pods: a torus and optical switches.** A TPU chip links directly to its neighbours: six links, one each way in three dimensions. Sixty-four chips form a 4×4×4 cube wired with copper; the cubes are joined through optical circuit switches, which can be reconfigured to shape the pod into the torus a job needs. A TPU v5p pod has <V of="other.tpu-v5p.chips" fmt="int" /> chips, each with <V of="other.tpu-v5p.scaleup_bidir" fmt="rate" /> of inter-chip bandwidth (both directions, Google's documentation); the TPU v4 paper reports that the optical switches and their optics are "&lt;5% of system cost and &lt;3% of system power". The TPU7x (Ironwood) pod has <V of="other.tpu-7x.chips" fmt="int" /> chips.
+
+A torus trades hops for wiring. In the animation, a message from one chip of a 4×4×4 cube reaches its six neighbours in one hop and the farthest chip in <V of="torus.k4.diameter" fmt="int" />; the mean is <V of="torus.k4.mean_hops" fmt="num" /> hops, against one in a switched rack. Neighbour traffic (a ring all-reduce, pipeline stages laid along a dimension) uses a torus well. All-to-all traffic, as in mixture-of-experts layers, is limited by the links a cut through the middle crosses: <V of="torus.k4.bisection_links" fmt="int" /> for the cube. With each chip's bandwidth split equally over its six links (our assumption: Google states only the per-chip total), a 64 MB all-to-all within a cube takes at least <V of="tpu.64MB.t_torus" fmt="time" />, against <V of="tpu.64MB.t_nvl72" fmt="time" /> in a GB200 NVL72 rack (<V of="tpu.64MB.ratio" fmt="num" /> times less). Part of that gap is the NVL72 GPU's larger per-chip bandwidth; the rest is the bisection.
+
+**AMD Helios: a 72-GPU rack, double width.** AMD's Helios reference rack holds <V of="other.helios.chips" fmt="int" /> Instinct MI450 GPUs with "up to <V of="other.helios.scaleup_total" fmt="rate" /> of scale-up interconnect bandwidth", <V of="other.helios.scaleup_per_chip" fmt="rate" /> per GPU if spread evenly, and <V of="other.helios.scaleout_total" fmt="rate" /> of Ethernet scale-out. Each GPU has up to <V of="other.helios.hbm_bytes" fmt="bytes" /> of HBM4 at <V of="other.helios.hbm_bw" fmt="rate" />. It is built on the Open Rack Wide specification, a double-wide liquid-cooled rack submitted to OCP, and AMD frames it around open standards (OCP, UALink, Ultra Ethernet). AMD expects volume deployment in 2026, so it is marked planned.
+
+**AWS Trainium UltraServers.** AWS's Trn2 UltraServer joins <V of="other.trn2-ultra.chips" fmt="int" /> Trainium2 chips across four <V of="other.trn2-ultra.instance_chips" fmt="int" />-chip instances with NeuronLink, its own chip-to-chip interconnect. The Trainium3 UltraServer scales to <V of="other.trn3-ultra.chips" fmt="int" /> chips with NeuronSwitch, "an all-to-all fabric": like NVIDIA, a switch rather than direct links. AWS does not state per-chip interconnect bandwidth on the pages used.
+
+<OthersTable />
+
+What each design changes about the ladder of [chapter 1](/learn/01-chip-to-data-centre) is mostly the size and shape of the fast domain: 64 to 144 chips behind switches, 72 GPUs in a rack, or thousands of chips in a reconfigurable torus with more hops between them. The checks below confirm the per-chip and total figures in the vendors' own pages agree with each other.
+
+<ValidationTable only="helios" />
+
+<ValidationTable only="trn" />
+
+</Layer>
+
+<Callout kind="illustrative">
+
+The torus all-to-all is a bandwidth lower bound with the chip's stated inter-chip bandwidth split equally over six links, our assumption. A real all-to-all on a torus also pays for multi-hop routing and contention, so it runs slower than this bound. Hop counts assume shortest-path routing with wrap-around in every dimension (Google notes slices smaller than a cube have no wrap-around). Helios and Trainium3 figures are each vendor's as stated; no performance comparison between vendors is made or implied. Every figure and its source: [the specifications](/specs).
+
+</Callout>
+
+<Layer kind="maths">
+
+On a ring of $k$ nodes ($k$ even) the distances from one node to all $k$ sum to $k^2/4$. In $n$ dimensions a node's coordinates add independently, so the distances to all $N = k^n$ nodes sum to $n\,k^{n-1}\cdot k^2/4$:
+
+$$
+\overline{h} = \frac{n\,k^{n+1}}{4\,(N-1)}, \qquad h_{\max} = n\,\frac{k}{2}, \qquad L_{\text{bisection}} = 2\,k^{\,n-1}.
+$$
+
+In an all-to-all, each chip sends $S/N$ to every other; the $N/2$ chips on one side send $(N/2)(N/2)(S/N) = NS/4$ bytes across the cut, each way, over $L_{\text{bisection}}$ links of bandwidth $B_{\text{link}}$.
+
+</Layer>
+
+<Layer kind="code">
+
+A chip's hop distance from chip 0, cut from [`src/lib/racks/model.ts`](https://github.com/BrendanJamesLynskey/ai-racks-explained/blob/main/src/lib/racks/model.ts):
+
+```ts
+for (let i = 0; i < n; i++) {
+  const c = x % k;
+  d += Math.min(c, k - c);
+  x = Math.floor(x / k);
+}
+```
+
+</Layer>
+
+<Callout kind="deeper">
+
+- Companion sites: [Systolic Arrays Explained, the TPU](https://systolic-arrays-explained.vercel.app/learn/07-the-tpu) (inside the chip).
+- NVIDIA GPU series: [NVSwitch, point-to-point becomes a fabric](https://brendanjameslynskey.github.io/NVIDIA_GPU_05_NVLink_NVSwitch/#slide-07), [NVLink against PCIe and InfiniBand](https://brendanjameslynskey.github.io/NVIDIA_GPU_05_NVLink_NVSwitch/#slide-10) and [chiplet trends, industry convergence](https://brendanjameslynskey.github.io/NVIDIA_GPU_25_Process_and_Packaging/#slide-09).
+- Jouppi et al., [TPU v4](https://arxiv.org/abs/2304.01433); Google Cloud, [TPU v5p](https://cloud.google.com/tpu/docs/v5p) and [TPU7x](https://cloud.google.com/tpu/docs/tpu7x); AMD, [Helios](https://www.amd.com/en/blogs/2025/amd-helios-ai-rack-built-on-metas-2025-ocp-design.html); AWS, [Trn2](https://aws.amazon.com/ec2/instance-types/trn2/) and [Trainium](https://aws.amazon.com/ai/machine-learning/trainium/).
+
+</Callout>

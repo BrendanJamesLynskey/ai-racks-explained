@@ -8,7 +8,31 @@ import fx from "../fixtures/rack_fixtures.json";
 
 import {
   GPU_ORDER,
+  OTHER_ORDER,
   PATH_ORDER,
+  a2aTorus,
+  airCp,
+  busbar,
+  checkpoint,
+  coolingLoop,
+  facility,
+  failureRate,
+  heatFlow,
+  layoutSteps,
+  loopSteps,
+  other,
+  powerChain,
+  rackSmoothing,
+  scaleupPerChip,
+  smoothingSteps,
+  tco,
+  tcoSteps,
+  torus,
+  torusShells,
+  torusSteps,
+  tpuCompare,
+  trainingLayout,
+  waterCp,
   allreduceTime,
   alltoallTime,
   fatTree,
@@ -149,5 +173,70 @@ describe("validation band", () => {
       expect(v.ratio, v.id).toBeGreaterThanOrEqual(0.98);
       expect(v.ratio, v.id).toBeLessThanOrEqual(1.04);
     }
+  });
+});
+
+describe("chapters 6-11 (brief 31B)", () => {
+  it("power: the rack's shelves, bus currents and smoothing", () => {
+    for (const f of ["power", "cooling"] as const)
+      expect(facility(f)).toEqual((fx.facility as Record<string, unknown>)[f]);
+    expect(powerChain()).toEqual(fx.powerChain);
+    for (const c of fx.busbar) expect(busbar(c.p, c.v)).toEqual(c.out);
+    for (const c of fx.smoothing) {
+      const m = rackSmoothing(c.half, c.j);
+      expect(m).toEqual(c.out);
+      expect(smoothingSteps(m)).toEqual(c.steps);
+    }
+  });
+
+  it("cooling: heat balance, the loop and its frames", () => {
+    expect(waterCp()).toBe(fx.waterCp);
+    expect(airCp()).toBe(fx.airCp);
+    for (const c of fx.heatFlow)
+      expect(heatFlow(c.q, c.dl, c.da)).toEqual(c.out);
+    for (const c of fx.coolingLoop)
+      expect(coolingLoop(c.q, c.frac, c.tfac, c.dt)).toEqual(c.out);
+    for (const c of fx.loopSteps)
+      expect(loopSteps(coolingLoop(c.q, c.frac, c.tfac, c.dt))).toEqual(c.out);
+  });
+
+  it("training: failure rate, Young's interval, layouts and their frames", () => {
+    expect(failureRate()).toBe(fx.failureRate);
+    for (const c of fx.checkpoint)
+      expect(checkpoint(c.n, c.save)).toEqual(c.out);
+    for (const c of fx.layout)
+      expect(trainingLayout(c.tp, c.pp, c.dp, c.domain)).toEqual(c.out);
+    for (const c of fx.layoutSteps)
+      expect(layoutSteps(c.tp, c.pp, c.dp, c.domain)).toEqual(c.out);
+  });
+
+  it("other designs: records, tori, the TPU comparison", () => {
+    for (const o of OTHER_ORDER) {
+      expect(other(o)).toEqual((fx.others as Record<string, unknown>)[o]);
+      expect(scaleupPerChip(o)).toBe(
+        (fx.scaleup as Record<string, number | null>)[o],
+      );
+    }
+    for (const c of fx.torus) {
+      expect(torus(c.k)).toEqual(c.out);
+      expect(torusShells(c.k)).toEqual(c.shells);
+      expect(torusSteps(c.k)).toEqual(c.steps);
+    }
+    for (const c of fx.tpuCompare) expect(tpuCompare(c.size)).toEqual(c);
+    expect(a2aTorus(4, 3, 64e6, 100e9)).toBe(
+      fx.tpuCompare.find((c) => c.size === 64e6)!.t_torus,
+    );
+  });
+
+  it("cost: every grid point and the quarter-by-quarter frames", () => {
+    const ci = fx.costInputs;
+    for (const c of fx.tco)
+      expect(
+        tco(c.capex, ci.years, ci.rack_w, ci.pue, c.kwh, ci.tok_s, c.util),
+      ).toEqual(c.out);
+    for (const c of fx.tcoSteps)
+      expect(
+        tcoSteps(c.capex, ci.years, ci.rack_w, ci.pue, c.kwh, ci.tok_s, c.util),
+      ).toEqual(c.out);
   });
 });

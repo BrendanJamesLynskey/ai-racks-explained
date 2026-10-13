@@ -10,12 +10,18 @@ import {
   fmtBytes,
   fmtFlops,
   fmtInt,
+  fmtJoules,
   fmtRate,
+  fmtTemp,
   fmtTime,
+  fmtTokens,
+  fmtUsd,
   fmtWatts,
   pct,
   trim,
 } from "@/lib/format";
+
+import { DISAGG } from "./disagg";
 
 import {
   FORMATS,
@@ -39,6 +45,29 @@ import {
   validation,
   alltoallTime,
   perDir,
+  BUSBAR_CASES,
+  COST_ILLUSTRATIVE,
+  HOURS_PER_YEAR,
+  LLAMA3_RUN,
+  OTHER_ORDER,
+  PHYS,
+  airCp,
+  busbar,
+  checkpoint,
+  coolingLoop,
+  facility,
+  failureRate,
+  heatFlow,
+  other,
+  powerChain,
+  rackSmoothing,
+  scaleupPerChip,
+  tco,
+  torus,
+  torusShells,
+  tpuCompare,
+  trainingLayout,
+  waterCp,
   type Fmt as WeightFmt,
   type SwitchId,
   type SystemId,
@@ -54,7 +83,11 @@ export type Fmt =
   | "pct"
   | "int"
   | "num"
-  | "raw";
+  | "raw"
+  | "temp"
+  | "usd"
+  | "joules"
+  | "tokens";
 
 /** The message sizes the collective numbers are quoted at. */
 export const SIZE_LABELS: Record<string, number> = {
@@ -66,6 +99,62 @@ export const SIZE_LABELS: Record<string, number> = {
 /** The fabric sizes and radixes the fat-tree numbers are quoted at. */
 export const TREE_N = [576, 2048, 9216, 32768] as const;
 export const TREE_K = [64, 144] as const;
+
+/** Chapter 6's power-smoothing cases: how fast the load swings, and the storage per GPU. */
+export const SMOOTH_HALF: Record<string, number> = {
+  fast: 0.05,
+  mid: 0.25,
+  slow: 1.0,
+};
+export const SMOOTH_J: Record<string, number> = {
+  none: 0,
+  gb300: 65,
+  x10: 650,
+};
+/** Chapter 7's rack powers. */
+export const RACK_Q: Record<string, number> = {
+  r120: 120e3,
+  r135: 135e3,
+  r1000: 1e6,
+};
+/** Chapter 9's layouts: TP x PP x DP. */
+export const LAYOUTS: [number, number, number][] = [
+  [4, 2, 2],
+  [8, 4, 4],
+  [8, 16, 128],
+];
+export const CKPT_N = [1024, 4096, 16384, 100000] as const;
+export const CKPT_SAVE = [10, 60, 300] as const;
+/** Chapter 11's cases: [capex per rack, $ per kWh, utilisation] (all illustrative). */
+export const TCO_CASES: Record<string, [number, number, number]> = {
+  base: [3.5e6, 0.1, 0.7],
+  low: [2e6, 0.05, 0.9],
+  high: [5e6, 0.15, 0.5],
+};
+
+/** The illustrative cost inputs and the rack's sustained output from chapter 8. */
+export type CostInputs = {
+  capex_rack_usd: number;
+  years: number;
+  pue: number;
+  usd_per_kwh: number;
+  utilisation: number;
+  rack_w: number;
+  tok_s: number;
+};
+
+export function costInputs(): CostInputs {
+  const c = (k: string) => COST_ILLUSTRATIVE[k]!.v;
+  return {
+    capex_rack_usd: c("capex_rack_usd"),
+    years: c("years"),
+    pue: c("pue"),
+    usd_per_kwh: c("usd_per_kwh"),
+    utilisation: c("utilisation"),
+    rack_w: system("gb200-nvl72")["rack_power_w"] as number,
+    tok_s: DISAGG.offeredTokS,
+  };
+}
 
 function build(): Record<string, unknown> {
   const t: Record<string, unknown> = {};
@@ -150,6 +239,112 @@ function build(): Record<string, unknown> {
   const val: Record<string, unknown> = {};
   for (const v of validation()) val[v.id] = v;
   t.val = val;
+  // chapter 6: power
+  t.pow = powerChain();
+  t.fac = { power: facility("power"), cooling: facility("cooling") };
+  const bus: Record<string, unknown> = {};
+  for (const [p, v] of BUSBAR_CASES) bus[`w${p / 1e3}k_v${v}`] = busbar(p, v);
+  t.bus = bus;
+  const sm: Record<string, unknown> = {};
+  for (const [h, hv] of Object.entries(SMOOTH_HALF)) {
+    const byJ: Record<string, unknown> = {};
+    for (const [j, jv] of Object.entries(SMOOTH_J))
+      byJ[j] = rackSmoothing(hv, jv);
+    sm[h] = byJ;
+  }
+  t.smooth = sm;
+  // chapter 7: cooling
+  const phys: Record<string, unknown> = {
+    water_cp: waterCp(),
+    air_cp: airCp(),
+  };
+  for (const [k, f] of Object.entries(PHYS.fields)) phys[k] = f.v;
+  t.phys = phys;
+  const flow: Record<string, unknown> = {};
+  for (const [k, q] of Object.entries(RACK_Q)) flow[k] = heatFlow(q, 10, 15);
+  t.flow = flow;
+  const loop: Record<string, unknown> = {};
+  for (const tf of [20, 30, 40]) {
+    const byDt: Record<string, unknown> = {};
+    for (const d of [5, 10, 15]) byDt[`d${d}`] = coolingLoop(120e3, 0.9, tf, d);
+    loop[`t${tf}`] = byDt;
+  }
+  t.loop = loop;
+  // chapter 8: the recorded rack runs (and the run's own parameters)
+  const kvMean = DISAGG.promptMean * DISAGG.kvBytesPerToken;
+  const link: Record<string, unknown> = {};
+  for (const k of DISAGG.linkOrder)
+    link[k] = { bw: DISAGG.links[k].bw, kv_time: kvMean / DISAGG.links[k].bw };
+  t.dis = {
+    ...DISAGG.runs,
+    meta: {
+      gpus: DISAGG.gpus,
+      tp: DISAGG.tp,
+      instances: DISAGG.instances,
+      rate: DISAGG.rate,
+      n: DISAGG.n,
+      offered_tok_s: DISAGG.offeredTokS,
+      prompt_tok_s: DISAGG.promptTokS,
+      prompt_mean: DISAGG.promptMean,
+      output_mean: DISAGG.outputMean,
+      kv_per_token: DISAGG.kvBytesPerToken,
+      kv_mean: kvMean,
+      ttft_slo: DISAGG.ttftSlo,
+      tpot_slo: DISAGG.tpotSlo,
+      ctx_bw: DISAGG.ctx.B,
+      ctx_mem: DISAGG.ctx.M,
+      b200_bw: DISAGG.b200.B,
+      b200_mem: DISAGG.b200.M,
+      b200_flops: DISAGG.b200.F,
+      commit: DISAGG.commit.slice(0, 7),
+    },
+    link,
+  };
+  // chapter 9: training
+  const llama: Record<string, unknown> = { rate: failureRate() };
+  for (const [k, f] of Object.entries(LLAMA3_RUN)) llama[k] = f.v;
+  t.llama = llama;
+  const ck: Record<string, unknown> = {};
+  for (const n of CKPT_N) {
+    const byS: Record<string, unknown> = {};
+    for (const z of CKPT_SAVE) byS[`s${z}`] = checkpoint(n, z);
+    ck[`n${n}`] = byS;
+  }
+  t.ckpt = ck;
+  const lay: Record<string, unknown> = {};
+  for (const [a, b, c] of LAYOUTS)
+    lay[`l${a}x${b}x${c}`] = {
+      d8: trainingLayout(a, b, c, 8),
+      d72: trainingLayout(a, b, c, 72),
+    };
+  t.lay = lay;
+  // chapter 10: other designs
+  const tor: Record<string, unknown> = {};
+  for (const k of [2, 4, 8]) {
+    const tt = torus(k) as unknown as Record<string, unknown>;
+    tor[`k${k}`] = { ...tt, shell_max: Math.max(...torusShells(k)) };
+  }
+  t.torus = tor;
+  const tpu: Record<string, unknown> = {};
+  for (const [lab, z] of Object.entries(SIZE_LABELS)) {
+    const c = tpuCompare(z);
+    tpu[lab] = { ...c, ratio: c.t_torus / c.t_nvl72 };
+  }
+  t.tpu = tpu;
+  const oth: Record<string, unknown> = {};
+  for (const o of OTHER_ORDER)
+    oth[o] = {
+      ...other(o),
+      scaleup_per_chip: scaleupPerChip(o) ?? "not disclosed",
+    };
+  t.other = oth;
+  // chapter 11: cost
+  const ci = costInputs();
+  t.cost = { ...ci, hours: HOURS_PER_YEAR };
+  const tc: Record<string, unknown> = {};
+  for (const [k, [cap, kwh, u]] of Object.entries(TCO_CASES))
+    tc[k] = tco(cap, ci.years, ci.rack_w, ci.pue, kwh, ci.tok_s, u);
+  t.tco = tc;
   return t;
 }
 
@@ -189,6 +384,14 @@ export function formatValue(v: number | string, fmt: Fmt): string {
       return fmtInt(v);
     case "raw":
       return String(v);
+    case "temp":
+      return fmtTemp(v);
+    case "usd":
+      return fmtUsd(v);
+    case "joules":
+      return fmtJoules(v);
+    case "tokens":
+      return fmtTokens(v);
     default:
       return trim(v);
   }

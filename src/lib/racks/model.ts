@@ -936,6 +936,722 @@ export type Check = {
   ratio: number;
 };
 
+// ---------------------------------------------------------------------------
+// Records for chapters 6-11
+// ---------------------------------------------------------------------------
+
+export type FacilityRecord = {
+  id: string;
+  name: string;
+  avail: Field;
+  fields: Record<string, Field>;
+};
+export type OtherRecord = FacilityRecord;
+export type FacilityId = "power" | "cooling";
+export type OtherId =
+  | "tpu-v5p"
+  | "tpu-7x"
+  | "helios"
+  | "trn2-ultra"
+  | "trn3-ultra";
+
+export const FACILITY_RECORDS = data.facility as unknown as FacilityRecord[];
+export const OTHER_RECORDS = data.others as unknown as OtherRecord[];
+export const OTHER_ORDER = OTHER_RECORDS.map((o) => o.id as OtherId);
+export const PHYS = data.phys as unknown as {
+  shomate: {
+    A: number;
+    B: number;
+    C: number;
+    D: number;
+    E: number;
+    T: number;
+    molar_mass_g: number;
+  };
+  fields: Record<string, Field<number>>;
+};
+export const LLAMA3_RUN = data.llama3Run as unknown as Record<
+  string,
+  Field<number>
+>;
+export const COST_ILLUSTRATIVE = data.cost as unknown as Record<
+  string,
+  Field<number>
+>;
+export const SMOOTH_LOW = data.smoothLow;
+export const BUSBAR_CASES = data.busbarCases as [number, number][];
+export const LOOP_STEPS = data.loopSteps;
+export const LOOP_PARCELS = data.loopParcels;
+export const SEGMENTS = data.segments as Segment[];
+export const HOURS_PER_YEAR = data.hoursPerYear;
+
+export type Flat = {
+  id: string;
+  name: string;
+  avail: Avail;
+  [k: string]: number | string | null;
+};
+
+function flatten(r: FacilityRecord): Flat {
+  const out: Record<string, number | string | null> = {
+    id: r.id,
+    name: r.name,
+    avail: r.avail.v,
+  };
+  for (const [k, f] of Object.entries(r.fields)) out[k] = f.v;
+  return out as Flat;
+}
+
+/** A facility record's values (power, cooling), flattened. */
+export function facility(fid: FacilityId): Flat {
+  const r = FACILITY_RECORDS.find((x) => x.id === fid);
+  if (!r) throw new Error(`unknown facility record ${fid}`);
+  return flatten(r);
+}
+
+/** Another vendor's design (chapter 10), flattened. */
+export function other(oid: OtherId): Flat {
+  const r = OTHER_RECORDS.find((x) => x.id === oid);
+  if (!r) throw new Error(`unknown design ${oid}`);
+  return flatten(r);
+}
+
+const fnum = (r: Flat, k: string): number => {
+  const v = r[k];
+  if (typeof v !== "number") throw new Error(`${r.id}.${k} is not a number`);
+  return v;
+};
+
+// ---------------------------------------------------------------------------
+// Chapter 6: power
+// ---------------------------------------------------------------------------
+
+export type PowerChain = {
+  shelves: number;
+  psus: number;
+  installed_w: number;
+  usable_w: number;
+  input_w: number;
+  rack_w: number;
+  margin: number;
+  per_gpu_w: number;
+  dc_v: number;
+  busbar_a: number;
+};
+
+export function powerChain(sid: SystemId = "gb200-nvl72"): PowerChain {
+  const s = system(sid);
+  const psus = num(s, "power_shelves") * num(s, "psus_per_shelf");
+  const installed = psus * num(s, "psu_w");
+  const usable = installed / 2; // N+N: either half of the supplies carries the rack
+  return {
+    shelves: num(s, "power_shelves"),
+    psus,
+    installed_w: installed,
+    usable_w: usable,
+    input_w: num(s, "power_shelves") * num(s, "shelf_input_w"),
+    rack_w: num(s, "rack_power_w"),
+    margin: usable / num(s, "rack_power_w"),
+    per_gpu_w: num(s, "rack_power_w") / num(s, "gpus"),
+    dc_v: num(s, "dc_volts"),
+    busbar_a: num(s, "rack_power_w") / num(s, "dc_volts"),
+  };
+}
+
+export type Busbar = {
+  p_w: number;
+  volts: number;
+  amps: number;
+  loss_rel: number;
+  copper_kg: number;
+};
+
+/** Bus current; I²R loss in the same conductor relative to 54 V; copper at the same current density as 1 MW at 54 V. */
+export function busbar(pW: number, volts: number): Busbar {
+  const p = facility("power");
+  const amps = pW / volts;
+  const r = fnum(p, "busbar_v") / volts;
+  const refAmps = fnum(p, "mw_rack_w") / fnum(p, "busbar_v");
+  return {
+    p_w: pW,
+    volts,
+    amps,
+    loss_rel: r * r,
+    copper_kg: (fnum(p, "copper_1mw_kg") * amps) / refAmps,
+  };
+}
+
+export type Smoothing = {
+  p_hi: number;
+  p_lo: number;
+  t_hi: number;
+  t_lo: number;
+  e_store: number;
+  p_avg: number;
+  grid_hi: number;
+  grid_lo: number;
+  used_j: number;
+  peak_cut: number;
+  swing: number;
+  raw_swing: number;
+  store_use: number;
+};
+
+/**
+ * A load alternating p_hi for t_hi and p_lo for t_lo, with e_store joules
+ * of storage: the grid's draw is held flat through the high phase as long
+ * as the store lasts, and the store is refilled in the low phase.
+ */
+export function smoothing(
+  pHi: number,
+  pLo: number,
+  tHi: number,
+  tLo: number,
+  eStore: number,
+): Smoothing {
+  const period = tHi + tLo;
+  const pAvg = (pHi * tHi + pLo * tLo) / period;
+  const level = Math.max(pAvg, pHi - eStore / tHi);
+  const used = (pHi - level) * tHi;
+  const low = pLo + used / tLo;
+  return {
+    p_hi: pHi,
+    p_lo: pLo,
+    t_hi: tHi,
+    t_lo: tLo,
+    e_store: eStore,
+    p_avg: pAvg,
+    grid_hi: level,
+    grid_lo: low,
+    used_j: used,
+    peak_cut: (pHi - level) / pHi,
+    swing: level - low,
+    raw_swing: pHi - pLo,
+    store_use: eStore > 0 ? used / eStore : 0.0,
+  };
+}
+
+export function rackSmoothing(
+  halfPeriod: number,
+  jPerGpu: number,
+  sid: SystemId = "gb200-nvl72",
+): Smoothing {
+  const s = system(sid);
+  const pHi = num(s, "rack_power_w");
+  return smoothing(
+    pHi,
+    SMOOTH_LOW * pHi,
+    halfPeriod,
+    halfPeriod,
+    jPerGpu * num(s, "gpus"),
+  );
+}
+
+export type SmoothStep = {
+  i: number;
+  t: number;
+  phase: "high" | "low";
+  load: number;
+  grid: number;
+  stored: number;
+};
+
+export function smoothingSteps(
+  sm: Smoothing,
+  periods = 2,
+  perPhase = 6,
+): SmoothStep[] {
+  let stored = sm.e_store;
+  let t = 0.0;
+  const out: SmoothStep[] = [
+    { i: 0, t, phase: "high", load: sm.p_hi, grid: sm.grid_hi, stored },
+  ];
+  let i = 0;
+  for (let k = 0; k < periods; k++) {
+    for (const phase of ["high", "low"] as const) {
+      const dt = (phase === "high" ? sm.t_hi : sm.t_lo) / perPhase;
+      for (let j = 0; j < perPhase; j++) {
+        i += 1;
+        t = t + dt;
+        if (phase === "high") {
+          stored = stored - (sm.p_hi - sm.grid_hi) * dt;
+          out.push({ i, t, phase, load: sm.p_hi, grid: sm.grid_hi, stored });
+        } else {
+          stored = stored + (sm.grid_lo - sm.p_lo) * dt;
+          out.push({ i, t, phase, load: sm.p_lo, grid: sm.grid_lo, stored });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Chapter 7: cooling
+// ---------------------------------------------------------------------------
+
+export const CFM_PER_M3S = 60 / (0.3048 * 0.3048 * 0.3048);
+
+/** Specific heat of liquid water at 298.15 K, J/(kg K), from NIST's Shomate equation. */
+export function waterCp(): number {
+  const c = PHYS.shomate;
+  const t = c.T / 1000;
+  const cpMol = c.A + c.B * t + c.C * t * t + c.D * t * t * t + c.E / (t * t);
+  return (cpMol / c.molar_mass_g) * 1000;
+}
+
+/** Specific heat of air at constant pressure, J/(kg K): gamma R / (gamma - 1). */
+export function airCp(): number {
+  const f = PHYS.fields;
+  const g = f["air_gamma"]!.v;
+  return (g * f["air_r"]!.v) / (g - 1);
+}
+
+export type HeatFlow = {
+  q_w: number;
+  water_kg_s: number;
+  water_l_min: number;
+  air_m3_s: number;
+  air_cfm: number;
+  vol_ratio: number;
+};
+
+export function heatFlow(
+  qW: number,
+  dtLiquid: number,
+  dtAir: number,
+): HeatFlow {
+  const f = PHYS.fields;
+  const cw = waterCp();
+  const ca = airCp();
+  const kgS = qW / (cw * dtLiquid);
+  const lS = kgS / f["water_kg_per_l"]!.v;
+  const airM3s = qW / (f["air_density"]!.v * ca * dtAir);
+  return {
+    q_w: qW,
+    water_kg_s: kgS,
+    water_l_min: lS * 60,
+    air_m3_s: airM3s,
+    air_cfm: airM3s * CFM_PER_M3S,
+    vol_ratio: airM3s / (lS / 1000),
+  };
+}
+
+export type CoolingLoop = {
+  q_w: number;
+  q_liquid: number;
+  q_air: number;
+  t_fac: number;
+  t_fac_ret: number;
+  t_sup: number;
+  t_ret: number;
+  kg_s: number;
+  l_min: number;
+  per_tray_kg_s: number;
+  racks_per_cdu: number;
+};
+
+export function coolingLoop(
+  qW: number,
+  liquidFrac: number,
+  tFac: number,
+  dt: number,
+  sid: SystemId = "gb200-nvl72",
+): CoolingLoop {
+  const s = system(sid);
+  const c = facility("cooling");
+  const qLiq = qW * liquidFrac;
+  const tSup = tFac + fnum(c, "cdu_approach_k");
+  const tRet = tSup + dt;
+  const kgS = qLiq / (waterCp() * dt);
+  return {
+    q_w: qW,
+    q_liquid: qLiq,
+    q_air: qW - qLiq,
+    t_fac: tFac,
+    t_fac_ret: tFac + dt,
+    t_sup: tSup,
+    t_ret: tRet,
+    kg_s: kgS,
+    l_min: (kgS / PHYS.fields["water_kg_per_l"]!.v) * 60,
+    per_tray_kg_s: kgS / num(s, "compute_trays"),
+    racks_per_cdu: Math.floor(fnum(c, "cdu_w") / qLiq),
+  };
+}
+
+export type Segment = "supply" | "cold plates" | "return" | "CDU";
+export type Parcel = { k: number; seg: Segment; temp: number };
+export type LoopStep = { i: number; parcels: Parcel[] };
+
+export function loopTemp(loop: CoolingLoop, k: number): number {
+  const q = LOOP_STEPS / 4;
+  const seg = Math.floor(k / q);
+  const x = (k % q) / q;
+  if (seg === 0) return loop.t_sup;
+  if (seg === 1) return loop.t_sup + (loop.t_ret - loop.t_sup) * x;
+  if (seg === 2) return loop.t_ret;
+  return loop.t_ret - (loop.t_ret - loop.t_sup) * x;
+}
+
+export function loopSteps(loop: CoolingLoop): LoopStep[] {
+  const gap = Math.floor(LOOP_STEPS / LOOP_PARCELS);
+  const q = LOOP_STEPS / 4;
+  const out: LoopStep[] = [];
+  for (let i = 0; i < LOOP_STEPS; i++) {
+    const parcels: Parcel[] = [];
+    for (let j = 0; j < LOOP_PARCELS; j++) {
+      const k = (i + j * gap) % LOOP_STEPS;
+      parcels.push({
+        k,
+        seg: SEGMENTS[Math.floor(k / q)]!,
+        temp: loopTemp(loop, k),
+      });
+    }
+    out.push({ i, parcels });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Chapter 9: training clusters
+// ---------------------------------------------------------------------------
+
+/** Unexpected interruptions per GPU-hour in the Llama 3 run. */
+export function failureRate(): number {
+  const r = LLAMA3_RUN;
+  return r["unexpected"]!.v / (r["gpus"]!.v * r["days"]!.v * 24);
+}
+
+export type Checkpoint = {
+  gpus: number;
+  save_s: number;
+  mtbf_s: number;
+  per_day: number;
+  tau_s: number;
+  waste: number;
+};
+
+/** Young (1974): interval sqrt(2 save M); time lost save / tau + tau / (2 M). */
+export function checkpoint(nGpus: number, saveS: number): Checkpoint {
+  const lam = failureRate() / 3600;
+  const mtbf = 1 / (lam * nGpus);
+  const tau = Math.sqrt(2 * saveS * mtbf);
+  return {
+    gpus: nGpus,
+    save_s: saveS,
+    mtbf_s: mtbf,
+    per_day: 86400 / mtbf,
+    tau_s: tau,
+    waste: saveS / tau + tau / (2 * mtbf),
+  };
+}
+
+export function layoutRank(
+  d: number,
+  p: number,
+  t: number,
+  pp: number,
+  tp: number,
+): number {
+  return (d * pp + p) * tp + t;
+}
+
+export type Layout = {
+  tp: number;
+  pp: number;
+  dp: number;
+  gpus: number;
+  domain: number;
+  domains: number;
+  tp_groups: number;
+  tp_inside: number;
+  pp_hops: number;
+  pp_net: number;
+  dp_groups: number;
+  dp_net: number;
+};
+
+export function trainingLayout(
+  tp: number,
+  pp: number,
+  dp: number,
+  domain = 72,
+): Layout {
+  const n = tp * pp * dp;
+  const dom = (r: number) => Math.floor(r / domain);
+  let tpIn = 0;
+  for (let d = 0; d < dp; d++)
+    for (let p = 0; p < pp; p++) {
+      const racks = new Set<number>();
+      for (let t = 0; t < tp; t++) racks.add(dom(layoutRank(d, p, t, pp, tp)));
+      tpIn += racks.size === 1 ? 1 : 0;
+    }
+  let ppNet = 0;
+  for (let d = 0; d < dp; d++)
+    for (let p = 0; p < pp - 1; p++) {
+      let cross = false;
+      for (let t = 0; t < tp; t++)
+        if (
+          dom(layoutRank(d, p, t, pp, tp)) !==
+          dom(layoutRank(d, p + 1, t, pp, tp))
+        )
+          cross = true;
+      ppNet += cross ? 1 : 0;
+    }
+  let dpNet = 0;
+  for (let p = 0; p < pp; p++)
+    for (let t = 0; t < tp; t++) {
+      const racks = new Set<number>();
+      for (let d = 0; d < dp; d++) racks.add(dom(layoutRank(d, p, t, pp, tp)));
+      dpNet += racks.size > 1 ? 1 : 0;
+    }
+  return {
+    tp,
+    pp,
+    dp,
+    gpus: n,
+    domain,
+    domains: Math.floor((n + domain - 1) / domain),
+    tp_groups: dp * pp,
+    tp_inside: tpIn,
+    pp_hops: dp * (pp - 1),
+    pp_net: ppNet,
+    dp_groups: pp * tp,
+    dp_net: dpNet,
+  };
+}
+
+export type LayoutStep = {
+  i: number;
+  d: number;
+  p: number;
+  first: number;
+  last: number;
+  domain: number;
+  split: boolean;
+  link: "nvlink" | "net" | null;
+};
+
+export function layoutSteps(
+  tp: number,
+  pp: number,
+  dp: number,
+  domain = 72,
+): LayoutStep[] {
+  const out: LayoutStep[] = [];
+  const dom = (r: number) => Math.floor(r / domain);
+  let i = 0;
+  for (let d = 0; d < dp; d++)
+    for (let p = 0; p < pp; p++) {
+      const ranks: number[] = [];
+      for (let t = 0; t < tp; t++) ranks.push(layoutRank(d, p, t, pp, tp));
+      let link: LayoutStep["link"] = null;
+      if (p > 0) {
+        let cross = false;
+        for (let t = 0; t < tp; t++)
+          if (dom(layoutRank(d, p - 1, t, pp, tp)) !== dom(ranks[t]!))
+            cross = true;
+        link = cross ? "net" : "nvlink";
+      }
+      out.push({
+        i,
+        d,
+        p,
+        first: ranks[0]!,
+        last: ranks[tp - 1]!,
+        domain: dom(ranks[0]!),
+        split: dom(ranks[0]!) !== dom(ranks[tp - 1]!),
+        link,
+      });
+      i += 1;
+    }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Chapter 10: other designs (a torus against a switch)
+// ---------------------------------------------------------------------------
+
+export type Torus = {
+  k: number;
+  n: number;
+  nodes: number;
+  links_per_node: number;
+  mean_hops: number;
+  diameter: number;
+  bisection_links: number;
+};
+
+export function torus(k: number, n = 3): Torus {
+  const nodes = Math.pow(k, n);
+  const ringSum = Math.floor((k * k) / 4);
+  const total = n * Math.pow(k, n - 1) * ringSum;
+  return {
+    k,
+    n,
+    nodes,
+    links_per_node: 2 * n,
+    mean_hops: total / (nodes - 1),
+    diameter: n * Math.floor(k / 2),
+    bisection_links: 2 * Math.pow(k, n - 1),
+  };
+}
+
+/** The hop distance of node idx from node 0 (wrap-around in every dimension). */
+export function torusDistance(idx: number, k: number, n = 3): number {
+  let d = 0;
+  let x = idx;
+  for (let i = 0; i < n; i++) {
+    const c = x % k;
+    d += Math.min(c, k - c);
+    x = Math.floor(x / k);
+  }
+  return d;
+}
+
+export function torusShells(k: number, n = 3): number[] {
+  const counts = new Array<number>(n * Math.floor(k / 2) + 1).fill(0);
+  for (let idx = 0; idx < Math.pow(k, n); idx++)
+    counts[torusDistance(idx, k, n)]! += 1;
+  return counts;
+}
+
+export type TorusStep = { d: number; new: number; reached: number };
+
+export function torusSteps(k: number, n = 3): TorusStep[] {
+  const shells = torusShells(k, n);
+  let reached = 0;
+  return shells.map((c, d) => {
+    reached += c;
+    return { d, new: c, reached };
+  });
+}
+
+export function a2aTorus(
+  k: number,
+  n: number,
+  size: number,
+  linkDir: number,
+): number {
+  const t = torus(k, n);
+  return (t.nodes * size) / (4 * t.bisection_links * linkDir);
+}
+
+export type TpuCompare = {
+  size: number;
+  cube: number;
+  link_dir: number;
+  chip_dir: number;
+  t_torus: number;
+  t_nvl72: number;
+  nvl_dir: number;
+};
+
+export function tpuCompare(size: number): TpuCompare {
+  const o = other("tpu-v5p");
+  const t = torus(4, 3);
+  const linkDir = fnum(o, "scaleup_bidir") / t.links_per_node / 2;
+  const nvl = perDir(gpu("b200").nvlink_bidir);
+  return {
+    size,
+    cube: t.nodes,
+    link_dir: linkDir,
+    chip_dir: perDir(fnum(o, "scaleup_bidir")),
+    t_torus: a2aTorus(4, 3, size, linkDir),
+    t_nvl72: alltoallTime(72, size, nvl),
+    nvl_dir: nvl,
+  };
+}
+
+/** Stated scale-up bandwidth per chip (both directions), or the stated total over the chips. */
+export function scaleupPerChip(oid: OtherId): number | null {
+  const o = other(oid);
+  const per = o["scaleup_bidir"];
+  if (per !== undefined && per !== null) return per as number;
+  const tot = o["scaleup_total"];
+  if (tot !== undefined && tot !== null)
+    return (tot as number) / fnum(o, "chips");
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Chapter 11: cost (every price illustrative)
+// ---------------------------------------------------------------------------
+
+export type Tco = {
+  capex_yr: number;
+  energy_usd_yr: number;
+  energy_kwh_yr: number;
+  tokens_yr: number;
+  usd_per_mtok: number;
+  capex_share: number;
+  tok_s_per_mw: number;
+};
+
+export function tco(
+  capex: number,
+  years: number,
+  rackW: number,
+  pue: number,
+  usdPerKwh: number,
+  tokS: number,
+  util: number,
+): Tco {
+  const energyKwh = (rackW / 1000) * pue * HOURS_PER_YEAR;
+  const energyUsd = energyKwh * usdPerKwh;
+  const capexYr = capex / years;
+  const tokensYr = tokS * util * HOURS_PER_YEAR * 3600;
+  const total = capexYr + energyUsd;
+  return {
+    capex_yr: capexYr,
+    energy_usd_yr: energyUsd,
+    energy_kwh_yr: energyKwh,
+    tokens_yr: tokensYr,
+    usd_per_mtok: (total / tokensYr) * 1e6,
+    capex_share: capexYr / total,
+    tok_s_per_mw: (tokS * util) / ((rackW * pue) / 1e6),
+  };
+}
+
+export type TcoStep = {
+  q: number;
+  capex: number;
+  energy: number;
+  tokens: number;
+  usd_per_mtok: number | null;
+};
+
+export function tcoSteps(
+  capex: number,
+  years: number,
+  rackW: number,
+  pue: number,
+  usdPerKwh: number,
+  tokS: number,
+  util: number,
+): TcoStep[] {
+  const c = tco(capex, years, rackW, pue, usdPerKwh, tokS, util);
+  const out: TcoStep[] = [];
+  for (let q = 0; q < years * 4 + 1; q++) {
+    const f = q / 4;
+    const cap = c.capex_yr * f;
+    const en = c.energy_usd_yr * f;
+    const tok = c.tokens_yr * f;
+    out.push({
+      q,
+      capex: cap,
+      energy: en,
+      tokens: tok,
+      usd_per_mtok: q > 0 ? ((cap + en) / tok) * 1e6 : null,
+    });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Validation band
+// ---------------------------------------------------------------------------
+
 export function validation(): Check[] {
   const s = system("gb200-nvl72");
   const d = nvlinkDomain("gb200-nvl72");
@@ -1006,6 +1722,57 @@ export function validation(): Check[] {
       note: "published as 'over 10,000 GPUs'",
     },
   ];
+  const h = other("helios");
+  const t2 = other("trn2-ultra");
+  const t3 = other("trn3-ultra");
+  rows.push(
+    {
+      id: "helios-hbm",
+      what: "AMD Helios total HBM (B): 72 x per-GPU",
+      model: fnum(h, "chips") * fnum(h, "hbm_bytes"),
+      published: fnum(h, "hbm_total"),
+      src: "helios-blog",
+    },
+    {
+      id: "helios-hbm-bw",
+      what: "AMD Helios total HBM bandwidth (B/s): 72 x per-GPU",
+      model: fnum(h, "chips") * fnum(h, "hbm_bw"),
+      published: fnum(h, "hbm_bw_total"),
+      src: "helios-blog",
+    },
+    {
+      id: "trn2-fp8",
+      what: "Trn2 UltraServer FP8 (FLOP/s): 4 x a 16-chip instance",
+      model:
+        Math.floor(fnum(t2, "chips") / fnum(t2, "instance_chips")) *
+        fnum(t2, "instance_fp8"),
+      published: fnum(t2, "fp8_total"),
+      src: "trn2-page",
+    },
+    {
+      id: "trn2-hbm-bw",
+      what: "Trn2 UltraServer HBM bandwidth (B/s): 4 x a 16-chip instance",
+      model:
+        Math.floor(fnum(t2, "chips") / fnum(t2, "instance_chips")) *
+        fnum(t2, "instance_hbm_bw"),
+      published: fnum(t2, "hbm_bw_total"),
+      src: "trn2-page",
+    },
+    {
+      id: "trn3-hbm",
+      what: "Trainium3 UltraServer HBM (B): 144 x per-chip",
+      model: fnum(t3, "chips") * fnum(t3, "hbm_bytes"),
+      published: fnum(t3, "hbm_total"),
+      src: "trainium-page",
+    },
+    {
+      id: "trn3-hbm-bw",
+      what: "Trainium3 UltraServer HBM bandwidth (B/s): 144 x per-chip",
+      model: fnum(t3, "chips") * fnum(t3, "hbm_bw"),
+      published: fnum(t3, "hbm_bw_total"),
+      src: "trainium-page",
+    },
+  );
   const names = { leaf: "leaves", spine: "spines", core: "cores" } as const;
   for (const row of SUPERPOD_TABLE3) {
     const m = railAligned(row.sus);

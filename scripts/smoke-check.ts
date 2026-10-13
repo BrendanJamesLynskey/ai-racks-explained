@@ -14,7 +14,8 @@
  * the content that proves it rendered from the model: the landing page,
  * /specs and /about must print the model's own numbers (computed here with
  * the same code), every chapter must render its MDX (a layer, server-
- * rendered KaTeX and the animation's placeholder), and the header must
+ * rendered KaTeX and the animation's placeholder), chapter 8 must print the
+ * simulator's recorded runs and its requests must be served, and the header must
  * carry the four-track site switch with Racks as this site's place.
  */
 import { fmtRate } from "@/lib/format";
@@ -90,6 +91,11 @@ async function main(): Promise<void> {
       "/learn",
       SECTIONS.map((x) => x.slug),
     ),
+    checkPage(base, "/racks/disagg/workload.json", ['"rows"']),
+    checkPage(base, "/learn/08-disaggregated-inference", [
+      'data-run="12-6.nvlink.b200"',
+      "Disaggregated_Inference_Sim/blob/",
+    ]),
     ...SECTIONS.map((x) =>
       checkPage(base, `/learn/${x.slug}`, [
         'data-layer="concept"',

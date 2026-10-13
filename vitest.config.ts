@@ -16,6 +16,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html", "lcov"],
       include: ["src/lib/**/*.ts"],
+      exclude: ["src/lib/racks/vendor/**"],
       thresholds: {
         // The execution model, its captions and the values the prose quotes.
         "src/lib/racks/**": {

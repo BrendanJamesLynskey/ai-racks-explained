@@ -188,6 +188,23 @@
 .eq-panel[data-hl~="leaf"] .hl-leaf,
 .eq-panel[data-hl~="spine"] .hl-spine,
 .eq-panel[data-hl~="core"] .hl-core,
+.eq-panel[data-hl~="store"] .hl-store,
+.eq-panel[data-hl~="grid"] .hl-grid,
+.eq-panel[data-hl~="load"] .hl-load,
+.eq-panel[data-hl~="heat"] .hl-heat,
+.eq-panel[data-hl~="flow"] .hl-flow,
+.eq-panel[data-hl~="rise"] .hl-rise,
+.eq-panel[data-hl~="prefill"] .hl-prefill,
+.eq-panel[data-hl~="handoff"] .hl-handoff,
+.eq-panel[data-hl~="decode"] .hl-decode,
+.eq-panel[data-hl~="tp"] .hl-tp,
+.eq-panel[data-hl~="pp"] .hl-pp,
+.eq-panel[data-hl~="dp"] .hl-dp,
+.eq-panel[data-hl~="hops"] .hl-hops,
+.eq-panel[data-hl~="bisect"] .hl-bisect,
+.eq-panel[data-hl~="capex"] .hl-capex,
+.eq-panel[data-hl~="energy"] .hl-energy,
+.eq-panel[data-hl~="tokens"] .hl-tokens,
 .eq-panel[data-hl~="optics"] .hl-optics {
   background-color: rgb(0 114 178 / 0.18);
   border-color: #0072b2;

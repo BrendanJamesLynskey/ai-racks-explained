@@ -7,7 +7,6 @@
 import Link from "next/link";
 
 import { SECTIONS } from "@/lib/mdx/sections";
-import { PLANNED } from "@/lib/planned";
 import { KERNELS_URL, NVIDIA_GPU_HUB } from "@/lib/site";
 
 export const metadata = {
@@ -61,18 +60,6 @@ export default function LearnIndex(): JSX.Element {
             <p className="mt-1 pl-9 text-sm text-neutral-600 dark:text-neutral-400">
               {s.summary}
             </p>
-          </li>
-        ))}
-        {PLANNED.map((p, i) => (
-          <li key={p} className="py-4" data-planned>
-            <div className="flex items-baseline gap-3 text-neutral-500 dark:text-neutral-400">
-              <span className="font-mono text-xs">
-                {String(SECTIONS.length + i + 1).padStart(2, "0")}
-              </span>
-              <span>
-                {p} <span className="text-xs">(coming)</span>
-              </span>
-            </div>
           </li>
         ))}
       </ol>

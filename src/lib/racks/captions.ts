@@ -6,15 +6,28 @@
 import {
   fmtBytes,
   fmtInt,
+  fmtJoules,
   fmtRate,
+  fmtTemp,
   fmtTime,
+  fmtTokens,
+  fmtUsd,
   fmtWatts,
   pct,
   trim,
 } from "@/lib/format";
 
+import type { Counts } from "./disagg";
 import type {
+  CoolingLoop,
   FatTree,
+  Layout,
+  LayoutStep,
+  LoopStep,
+  SmoothStep,
+  Smoothing,
+  TcoStep,
+  TorusStep,
   FillStep,
   Fit,
   Hop,
@@ -132,4 +145,109 @@ export function treeCaption(t: FatTree, s: TreeStep, n: number): string {
     default:
       return `Step ${s.i + 1} of ${n}: ${s.label}. Total ${fmtInt(t.switches)} switches and ${fmtInt(t.transceivers)} transceivers, ${trim(t.per_gpu_transceivers, 3)} per GPU.`;
   }
+}
+
+// --- chapter 6: power smoothing -------------------------------------------------------
+
+export function smoothCaption(
+  sm: Smoothing,
+  st: SmoothStep,
+  n: number,
+): string {
+  const head = `Frame ${st.i + 1} of ${n}, t = ${fmtTime(st.t)}, ${st.phase} phase: the rack draws ${fmtWatts(st.load)}, the grid supplies ${fmtWatts(st.grid)}`;
+  const store =
+    sm.e_store > 0
+      ? `; the power shelves' store holds ${fmtJoules(st.stored)} of ${fmtJoules(sm.e_store)}.`
+      : "; there is no store, so the grid follows the load.";
+  const net = st.load - st.grid;
+  const flow =
+    net > 0
+      ? ` The store supplies ${fmtWatts(net)}.`
+      : net < 0
+        ? ` The store refills at ${fmtWatts(-net)}.`
+        : "";
+  return `${head}${store}${flow}`;
+}
+
+// --- chapter 7: the cooling loop --------------------------------------------------------
+
+export function loopCaption(
+  loop: CoolingLoop,
+  st: LoopStep,
+  n: number,
+): string {
+  const p = st.parcels[0]!;
+  const where: Record<string, string> = {
+    supply: "in the supply manifold",
+    "cold plates": "crossing the cold plates",
+    return: "in the return manifold",
+    CDU: "in the CDU's heat exchanger",
+  };
+  return (
+    `Frame ${st.i + 1} of ${n}: the marked parcel is ${where[p.seg]} at ${fmtTemp(p.temp)}. ` +
+    `Coolant leaves the CDU at ${fmtTemp(loop.t_sup)} and returns at ${fmtTemp(loop.t_ret)}; ` +
+    `${trim(loop.kg_s, 3)} kg/s (${trim(loop.l_min, 3)} L/min) carries the ${fmtWatts(loop.q_liquid)} on the cold plates.`
+  );
+}
+
+// --- chapter 8: disaggregated inference ----------------------------------------------------
+
+export function disaggCaption(
+  frame: number,
+  frames: number,
+  t: number,
+  c: Counts,
+  total: number,
+): string {
+  return (
+    `Frame ${frame + 1} of ${frames}, t = ${trim(t, 4)} s: ${fmtInt(c.waiting)} waiting for prefill, ` +
+    `${fmtInt(c.prefill)} in prefill, ${fmtInt(c.handoff)} handing their KV cache over, ` +
+    `${fmtInt(c.decode_queue)} queued for decode, ${fmtInt(c.decode)} decoding; ${fmtInt(c.done)} of ${fmtInt(total)} done.`
+  );
+}
+
+// --- chapter 9: training layout ----------------------------------------------------------
+
+export function layoutCaption(l: Layout, st: LayoutStep, n: number): string {
+  const head = `Group ${st.i + 1} of ${n}: replica ${st.d}, stage ${st.p}, GPUs ${st.first}-${st.last}`;
+  const where = st.split
+    ? `, split across NVLink domains ${st.domain} and ${st.domain + 1}`
+    : ` in NVLink domain ${st.domain}`;
+  const link =
+    st.link === null
+      ? " (the first stage of its pipeline)."
+      : st.link === "nvlink"
+        ? `. Its activations come from stage ${st.p - 1} over NVLink, inside the domain.`
+        : `. Its activations come from stage ${st.p - 1} over the network: a domain boundary.`;
+  const tail =
+    st.i === n - 1
+      ? ` In all: ${l.tp_inside} of ${l.tp_groups} tensor-parallel groups inside one domain, ${l.pp_net} of ${l.pp_hops} pipeline hops and ${l.dp_net} of ${l.dp_groups} data-parallel groups over the network.`
+      : "";
+  return `${head}${where}${link}${tail}`;
+}
+
+// --- chapter 10: a torus ------------------------------------------------------------------
+
+export function torusCaption(
+  st: TorusStep,
+  nodes: number,
+  last: number,
+): string {
+  if (st.d === 0)
+    return `Hop 0: the source chip. In a switched NVL72 rack, every other GPU is one switch hop away; in a ${nodes}-chip torus, messages walk from neighbour to neighbour.`;
+  return (
+    `Hop ${st.d}: ${st.new} more chip${st.new === 1 ? "" : "s"} reached, ${st.reached} of ${nodes} so far.` +
+    (st.d === last ? ` The farthest chips are ${last} hops away.` : "")
+  );
+}
+
+// --- chapter 11: cost -------------------------------------------------------------------
+
+export function tcoCaption(st: TcoStep, n: number): string {
+  if (st.q === 0)
+    return `Quarter 0 of ${n - 1}: the rack is bought; nothing written off, no energy used, no tokens served yet.`;
+  return (
+    `Quarter ${st.q} of ${n - 1}: ${fmtUsd(st.capex)} written off, ${fmtUsd(st.energy)} of electricity, ` +
+    `${fmtTokens(st.tokens)} tokens served: ${fmtUsd(st.usd_per_mtok!)} per million tokens so far (illustrative prices).`
+  );
 }

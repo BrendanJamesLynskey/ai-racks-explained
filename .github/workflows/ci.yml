@@ -12,7 +12,8 @@ concurrency:
 
 # The jobs of the companion sites' CI:
 #   - model: the Python reference's tests pass, and the site data and parity
-#     fixtures it writes are up to date;
+#     fixtures it writes are up to date; Disaggregated_Inference_Sim at the
+#     vendored commit regenerates chapter 8's runs and fixtures unchanged;
 #   - lint, format and typecheck;
 #   - unit tests (the TypeScript model against the Python fixtures, exactly;
 #     key animation frames; the chapters' code, equations, links and quoted
@@ -76,6 +77,18 @@ jobs:
         run: python scripts/make_fixtures.py --check
       - name: Reference model tests
         run: python -m pytest -q tests/python
+      # chapter 8: the simulator at the vendored commit; its two vendored
+      # files must be byte for byte that commit's, and its Python package
+      # must regenerate the recorded runs and parity fixtures unchanged
+      - name: The simulator at the vendored commit
+        run: |
+          COMMIT=$(python3 -c "import json; print(json.load(open('src/lib/racks/vendor/VENDORED.json'))['commit'])")
+          git clone --quiet https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim.git ../Disaggregated_Inference_Sim
+          git -C ../Disaggregated_Inference_Sim checkout --quiet "$COMMIT"
+      # the simulator's only dependency (its pyproject.toml)
+      - run: pip install "simpy>=4.1"
+      - name: Chapter 8's recorded runs and engine fixtures are up to date
+        run: python scripts/disagg_reference.py ../Disaggregated_Inference_Sim --check
 
   e2e-tests:
     name: E2E Tests

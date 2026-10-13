@@ -1,9 +1,47 @@
 {
  "accessed": "2026-10-13",
+ "busbarCases": [
+  [
+   120000.0,
+   50.0
+  ],
+  [
+   120000.0,
+   54.0
+  ],
+  [
+   120000.0,
+   800.0
+  ],
+  [
+   1000000.0,
+   54.0
+  ],
+  [
+   1000000.0,
+   800.0
+  ]
+ ],
  "claims": {
+  "800v-conductor": {
+   "src": "800v-blog",
+   "text": "800 VDC 'enables 85% more power to be transmitted through the same conductor size' than 415 VAC, and 'up to 5%' better end-to-end efficiency than 54 V systems"
+  },
   "cpo-power": {
    "src": "cpo-blog",
    "text": "co-packaged optics: '3.5x power efficiency' compared with pluggable transceivers"
+  },
+  "cpx-attention": {
+   "src": "cpx-news",
+   "text": "Rubin CPX: 'up to 30 petaflops of compute with NVFP4 precision', '128GB of cost-efficient GDDR7', '3x faster attention' than GB300 NVL72; 'expected to be available at the end of 2026'"
+  },
+  "distserve-goodput": {
+   "src": "distserve",
+   "text": "DistServe 'can serve 7.4x more requests or 12.6x tighter SLO' than state-of-the-art systems (in its own evaluation)"
+  },
+  "liquid-300x": {
+   "src": "water-blog",
+   "text": "GB200 NVL72: '25x more energy efficiency and 300x more water efficiency than traditional air-cooled architectures'"
   },
   "nvl72-one-gpu": {
    "src": "gb200-blog",
@@ -12,8 +50,140 @@
   "q3450-scale": {
    "src": "photonics-page",
    "text": "'connecting over 10,000 GPUs in a non-blocking, two-level fat-tree topology'"
+  },
+  "smooth-peak": {
+   "src": "smooth-blog",
+   "text": "energy-storage power shelves: 'the peak power demand seen by the grid is reduced by 30% when training the Megatron LLM'"
+  },
+  "vr-tokens-mw": {
+   "src": "vr-page",
+   "text": "Vera Rubin NVL72 'delivers up to 10x more tokens per megawatt than NVIDIA GB200 NVL72' (Kimi-K2 Thinking, 32K/8K input/output)"
   }
  },
+ "cost": {
+  "capex_rack_usd": {
+   "ref": "a round number for one 72-GPU rack with its share of network and facility; not a price",
+   "src": "",
+   "st": "illustrative",
+   "v": 3500000.0
+  },
+  "pue": {
+   "ref": "facility power over IT power (cooling and conversion overhead)",
+   "src": "",
+   "st": "illustrative",
+   "v": 1.2
+  },
+  "usd_per_kwh": {
+   "ref": "electricity price",
+   "src": "",
+   "st": "illustrative",
+   "v": 0.1
+  },
+  "utilisation": {
+   "ref": "fraction of the year the rack serves at the simulated load",
+   "src": "",
+   "st": "illustrative",
+   "v": 0.7
+  },
+  "years": {
+   "ref": "straight-line write-off period",
+   "src": "",
+   "st": "illustrative",
+   "v": 4
+  }
+ },
+ "facility": [
+  {
+   "avail": {
+    "ref": "54 V racks ship today; 800 VDC is planned for 2027",
+    "src": "800v-blog",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "busbar_v": {
+     "ref": "'Today's racks in AI factories rely on 54 VDC power distribution'",
+     "src": "800v-blog",
+     "st": "spec",
+     "v": 54
+    },
+    "copper_1mw_kg": {
+     "ref": "'a single 1 MW rack requires up to 200 kg of copper busbar' at 54 VDC",
+     "src": "800v-blog",
+     "st": "spec",
+     "v": 200
+    },
+    "hvdc_v": {
+     "ref": "800 VDC to the compute rack, 'starting in 2027' (planned)",
+     "src": "800v-blog",
+     "st": "spec",
+     "v": 800
+    },
+    "mw_rack_w": {
+     "ref": "'to support 1 MW IT racks and beyond, starting in 2027' (planned)",
+     "src": "800v-blog",
+     "st": "spec",
+     "v": 1000000.0
+    },
+    "storage_j_per_gpu": {
+     "ref": "GB300 NVL72 power supplies: '65 joules/GPU of energy storage' (capacitors)",
+     "src": "smooth-blog",
+     "st": "spec",
+     "v": 65
+    }
+   },
+   "id": "power",
+   "name": "Rack power delivery"
+  },
+  {
+   "avail": {
+    "ref": "figures quoted for shipping GB200 / GB300 NVL72 deployments",
+    "src": "water-blog",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "cdu_approach_k": {
+     "ref": "'5°C approach temperature'",
+     "src": "water-blog",
+     "st": "spec",
+     "v": 5
+    },
+    "cdu_w": {
+     "ref": "a liquid-to-liquid CDU for GB300 NVL72: '2MW cooling capacity at 5°C approach temperature'",
+     "src": "water-blog",
+     "st": "spec",
+     "v": 2000000.0
+    },
+    "coldplate_w": {
+     "ref": "cold plates for 'over 4,000W thermal design power'",
+     "src": "water-blog",
+     "st": "spec",
+     "v": 4000
+    },
+    "hyperscale_rack_w": {
+     "ref": "'today's hyperscale facilities can support over 135 kW per rack'",
+     "src": "water-blog",
+     "st": "spec",
+     "v": 135000.0
+    },
+    "legacy_rack_w": {
+     "ref": "'data centers once operated at 20 kW per rack'",
+     "src": "water-blog",
+     "st": "spec",
+     "v": 20000.0
+    },
+    "liquid_parts": {
+     "ref": "Compute Trays",
+     "src": "dgx-gb200-guide",
+     "st": "spec",
+     "v": "CPUs and GPUs on cold plates; networking and storage air-cooled"
+    }
+   },
+   "id": "cooling",
+   "name": "Rack cooling"
+  }
+ ],
  "formats": {
   "bf16": 2.0,
   "fp4": 0.5,
@@ -447,7 +617,54 @@
   }
  ],
  "hallW": 100000000.0,
+ "hoursPerYear": 8766,
  "ladderPayload": 1000000000.0,
+ "llama3Run": {
+  "days": {
+   "ref": "section 3.3.4: 'a 54-day snapshot period of pre-training'",
+   "src": "llama3",
+   "st": "spec",
+   "v": 54
+  },
+  "dp": {
+   "ref": "Table 4",
+   "src": "llama3",
+   "st": "spec",
+   "v": 128
+  },
+  "gpus": {
+   "ref": "Table 4: 16,384 GPUs, TP 8, CP 1, PP 16, DP 128 (H100, eight per server)",
+   "src": "llama3",
+   "st": "spec",
+   "v": 16384
+  },
+  "pp": {
+   "ref": "Table 4",
+   "src": "llama3",
+   "st": "spec",
+   "v": 16
+  },
+  "server_gpus": {
+   "ref": "'Each server is equipped with eight GPUs ... connected via NVLink'",
+   "src": "llama3",
+   "st": "spec",
+   "v": 8
+  },
+  "tp": {
+   "ref": "Table 4",
+   "src": "llama3",
+   "st": "spec",
+   "v": 8
+  },
+  "unexpected": {
+   "ref": "section 3.3.4: '419 were unexpected interruptions' (of 466)",
+   "src": "llama3",
+   "st": "spec",
+   "v": 419
+  }
+ },
+ "loopParcels": 8,
+ "loopSteps": 24,
  "models": [
   {
    "id": "llama3-70b",
@@ -468,7 +685,329 @@
    "src": "deepseekv3"
   }
  ],
+ "others": [
+  {
+   "avail": {
+    "ref": "Cloud TPU documentation",
+    "src": "tpu-v5p",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "chips": {
+     "ref": "'There are 8960 chips in a v5p Pod'",
+     "src": "tpu-v5p",
+     "st": "spec",
+     "v": 8960
+    },
+    "dense_bf16": {
+     "ref": "Peak compute per chip (BF16) 459 TFLOPs",
+     "src": "tpu-v5p",
+     "st": "spec",
+     "v": 459000000000000.0
+    },
+    "hbm_bw": {
+     "ref": "HBM bandwidth per chip 2765 GBps",
+     "src": "tpu-v5p",
+     "st": "spec",
+     "v": 2765000000000.0
+    },
+    "scaleup_bidir": {
+     "ref": "Bidirectional ICI bandwidth per chip 1200 GBps",
+     "src": "tpu-v5p",
+     "st": "spec",
+     "v": 1200000000000.0
+    },
+    "topology": {
+     "ref": "Interconnect topology: 3D torus; ICI resiliency section: OCS connect TPUs between cubes, copper within a cube",
+     "src": "tpu-v5p",
+     "st": "spec",
+     "v": "3D torus; 4x4x4 cubes joined by optical circuit switches"
+    }
+   },
+   "id": "tpu-v5p",
+   "name": "Google TPU v5p pod"
+  },
+  {
+   "avail": {
+    "ref": "Cloud TPU documentation",
+    "src": "tpu-7x",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "chips": {
+     "ref": "'a 9,216-chip footprint per Pod'",
+     "src": "tpu-7x",
+     "st": "spec",
+     "v": 9216
+    },
+    "dense_bf16": {
+     "ref": "Peak compute per chip (BF16) 2307 TFLOPs",
+     "src": "tpu-7x",
+     "st": "spec",
+     "v": 2307000000000000.0
+    },
+    "hbm_bw": {
+     "ref": "HBM bandwidth per chip 7380 GBps",
+     "src": "tpu-7x",
+     "st": "spec",
+     "v": 7380000000000.0
+    },
+    "scaleup_bidir": {
+     "ref": "Bidirectional ICI bandwidth per chip 1200 GBps",
+     "src": "tpu-7x",
+     "st": "spec",
+     "v": 1200000000000.0
+    },
+    "topology": {
+     "ref": "the page used does not state the pod topology",
+     "src": "tpu-7x",
+     "st": "undisclosed",
+     "v": null
+    }
+   },
+   "id": "tpu-7x",
+   "name": "Google TPU7x (Ironwood) pod"
+  },
+  {
+   "avail": {
+    "ref": "reference design, 'volume deployment expected in 2026'",
+    "src": "helios-blog",
+    "st": "spec",
+    "v": "planned"
+   },
+   "fields": {
+    "chips": {
+     "ref": "'a Helios system with 72 MI450 Series GPUs'",
+     "src": "helios-blog",
+     "st": "spec",
+     "v": 72
+    },
+    "hbm_bw": {
+     "ref": "'19.6 TB/s of memory bandwidth' per GPU",
+     "src": "helios-blog",
+     "st": "spec",
+     "v": 19600000000000.0
+    },
+    "hbm_bw_total": {
+     "ref": "'1.4 PB/s of aggregate bandwidth'",
+     "src": "helios-blog",
+     "st": "spec",
+     "v": 1400000000000000.0
+    },
+    "hbm_bytes": {
+     "ref": "'up to 432 GB of HBM4 memory' per GPU",
+     "src": "helios-blog",
+     "st": "spec",
+     "v": 432000000000.0
+    },
+    "hbm_total": {
+     "ref": "'31 TB of total HBM4 memory'",
+     "src": "helios-blog",
+     "st": "spec",
+     "v": 31000000000000.0
+    },
+    "rack_form": {
+     "ref": "ORW specification; 'backside quick-disconnect liquid cooling'",
+     "src": "helios-blog",
+     "st": "spec",
+     "v": "Open Rack Wide (double-wide), liquid-cooled"
+    },
+    "scaleout_total": {
+     "ref": "'43 TB/s of Ethernet-based scale-out bandwidth'",
+     "src": "helios-blog",
+     "st": "spec",
+     "v": 43000000000000.0
+    },
+    "scaleup_total": {
+     "ref": "'up to 260 TB/s of scale-up interconnect bandwidth'",
+     "src": "helios-blog",
+     "st": "spec",
+     "v": 260000000000000.0
+    },
+    "topology": {
+     "ref": "the scale-up fabric's topology is not stated in the source used",
+     "src": "helios-blog",
+     "st": "undisclosed",
+     "v": null
+    }
+   },
+   "id": "helios",
+   "name": "AMD Helios (72 x Instinct MI450)"
+  },
+  {
+   "avail": {
+    "ref": "the page says both 'available now' and 'available in preview'",
+    "src": "trn2-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "chips": {
+     "ref": "'64 Trainium2 chips across four Trn2 instances'",
+     "src": "trn2-page",
+     "st": "spec",
+     "v": 64
+    },
+    "fp8_total": {
+     "ref": "UltraServer: 'up to 83.2 FP8 petaflops'",
+     "src": "trn2-page",
+     "st": "spec",
+     "v": 8.32e+16
+    },
+    "hbm_bw_total": {
+     "ref": "UltraServer: '185 TBps of total memory bandwidth'",
+     "src": "trn2-page",
+     "st": "spec",
+     "v": 185000000000000.0
+    },
+    "instance_chips": {
+     "ref": "'16 Trainium2 chips' per Trn2 instance",
+     "src": "trn2-page",
+     "st": "spec",
+     "v": 16
+    },
+    "instance_fp8": {
+     "ref": "Trn2 instance: 'up to 20.8 FP8 petaflops'",
+     "src": "trn2-page",
+     "st": "spec",
+     "v": 2.08e+16
+    },
+    "instance_hbm_bw": {
+     "ref": "Trn2 instance: '46 TBps of total memory bandwidth'",
+     "src": "trn2-page",
+     "st": "spec",
+     "v": 46000000000000.0
+    },
+    "scaleout_bps": {
+     "ref": "UltraServers: '12.8 Tbps of EFAv3 networking'",
+     "src": "trn2-page",
+     "st": "spec",
+     "v": 12800000000000.0
+    },
+    "scaleup_bidir": {
+     "ref": "NeuronLink bandwidth per chip not stated on the page used",
+     "src": "trn2-page",
+     "st": "undisclosed",
+     "v": null
+    },
+    "topology": {
+     "ref": "NeuronLink, 'our proprietary chip-to-chip interconnect'",
+     "src": "trn2-page",
+     "st": "spec",
+     "v": "NeuronLink across four 16-chip instances"
+    }
+   },
+   "id": "trn2-ultra",
+   "name": "AWS Trn2 UltraServer (64 x Trainium2)"
+  },
+  {
+   "avail": {
+    "ref": "product page lists the specifications",
+    "src": "trainium-page",
+    "st": "spec",
+    "v": "product"
+   },
+   "fields": {
+    "chips": {
+     "ref": "'scale up to 144 Trainium chips'",
+     "src": "trainium-page",
+     "st": "spec",
+     "v": 144
+    },
+    "hbm_bw": {
+     "ref": "'4.9 TB/s bandwidth' per chip",
+     "src": "trainium-page",
+     "st": "spec",
+     "v": 4900000000000.0
+    },
+    "hbm_bw_total": {
+     "ref": "'706 TB/s of aggregate memory bandwidth'",
+     "src": "trainium-page",
+     "st": "spec",
+     "v": 706000000000000.0
+    },
+    "hbm_bytes": {
+     "ref": "'144 GB HBM3e per chip'",
+     "src": "trainium-page",
+     "st": "spec",
+     "v": 144000000000.0
+    },
+    "hbm_total": {
+     "ref": "'20.7 TB of HBM3e'",
+     "src": "trainium-page",
+     "st": "spec",
+     "v": 20700000000000.0
+    },
+    "scaleup_bidir": {
+     "ref": "interchip bandwidth per chip not stated on the page used",
+     "src": "trainium-page",
+     "st": "undisclosed",
+     "v": null
+    },
+    "topology": {
+     "ref": "'NeuronSwitch provides an all-to-all fabric'",
+     "src": "trainium-page",
+     "st": "spec",
+     "v": "NeuronSwitch all-to-all fabric"
+    }
+   },
+   "id": "trn3-ultra",
+   "name": "AWS Trainium3 UltraServer (144 x Trainium3)"
+  }
+ ],
+ "phys": {
+  "fields": {
+   "air_density": {
+    "ref": "sea-level standard day: 1.229 kg/m³",
+    "src": "nasa-air",
+    "st": "spec",
+    "v": 1.229
+   },
+   "air_gamma": {
+    "ref": "Specific Heats page: 'For air, gamma = 1.4 for standard day conditions'",
+    "src": "nasa-gas",
+    "st": "spec",
+    "v": 1.4
+   },
+   "air_r": {
+    "ref": "gas constant of air: .286 kJ/(kg K)",
+    "src": "nasa-gas",
+    "st": "spec",
+    "v": 286.0
+   },
+   "water_kg_per_l": {
+    "ref": "one litre of water taken as 1 kg (0.997 kg at 25 °C)",
+    "src": "nist-water",
+    "st": "illustrative",
+    "v": 1.0
+   }
+  },
+  "shomate": {
+   "A": -203.606,
+   "B": 1523.29,
+   "C": -3196.413,
+   "D": 2474.455,
+   "E": 3.855326,
+   "T": 298.15,
+   "molar_mass_g": 18.0153
+  }
+ },
+ "segments": [
+  "supply",
+  "cold plates",
+  "return",
+  "CDU"
+ ],
+ "smoothLow": 0.5,
  "sources": {
+  "800v-blog": {
+   "accessed": "2026-10-13",
+   "kind": "vendor technical blog",
+   "title": "NVIDIA 800 VDC Architecture Will Power the Next Generation of AI Factories (NVIDIA Technical Blog, 2025-05-20, updated 2025-07-31)",
+   "url": "https://developer.nvidia.com/blog/nvidia-800-v-hvdc-architecture-will-power-the-next-generation-of-ai-factories/"
+  },
   "alfares2008": {
    "accessed": "2026-10-13",
    "kind": "paper",
@@ -493,6 +1032,12 @@
    "title": "Scaling AI Factories with Co-Packaged Optics for Better Power Efficiency (NVIDIA Technical Blog, 2025-08-18)",
    "url": "https://developer.nvidia.com/blog/scaling-ai-factories-with-co-packaged-optics-for-better-power-efficiency/"
   },
+  "cpx-news": {
+   "accessed": "2026-10-13",
+   "kind": "vendor press release",
+   "title": "NVIDIA Unveils Rubin CPX: A New Class of GPU Designed for Massive-Context Inference (NVIDIA Newsroom, 2025-09-09)",
+   "url": "https://nvidianews.nvidia.com/news/nvidia-unveils-rubin-cpx-a-new-class-of-gpu-designed-for-massive-context-inference"
+  },
   "deepseekv3": {
    "accessed": "2026-10-13",
    "kind": "paper",
@@ -510,6 +1055,24 @@
    "kind": "vendor documentation",
    "title": "NVIDIA DGX GB200 User Guide, Hardware",
    "url": "https://docs.nvidia.com/dgx/dgxgb200-user-guide/hardware.html"
+  },
+  "disagg-sim": {
+   "accessed": "2026-10-13",
+   "kind": "simulator",
+   "title": "Disaggregated_Inference_Sim: a discrete-event simulator of prefill/decode serving (this author's; the engine this site vendors)",
+   "url": "https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim"
+  },
+  "distserve": {
+   "accessed": "2026-10-13",
+   "kind": "paper",
+   "title": "Zhong et al., DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving (arXiv 2401.09670)",
+   "url": "https://arxiv.org/abs/2401.09670"
+  },
+  "dynamo-gh": {
+   "accessed": "2026-10-13",
+   "kind": "vendor software documentation",
+   "title": "NVIDIA Dynamo, the open-source datacenter-scale inference stack (GitHub repository README)",
+   "url": "https://github.com/ai-dynamo/dynamo"
   },
   "eth-switch-page": {
    "accessed": "2026-10-13",
@@ -547,6 +1110,12 @@
    "title": "NVIDIA H200 product page, Specifications (H200 SXM column)",
    "url": "https://www.nvidia.com/en-us/data-center/h200/"
   },
+  "helios-blog": {
+   "accessed": "2026-10-13",
+   "kind": "vendor blog",
+   "title": "AMD 'Helios': Advancing Openness in AI Infrastructure Built on Meta's 2025 OCP Open Rack for AI Design (AMD blog, 2025-10-14)",
+   "url": "https://www.amd.com/en/blogs/2025/amd-helios-ai-rack-built-on-metas-2025-ocp-design.html"
+  },
   "hgx-page": {
    "accessed": "2026-10-13",
    "kind": "vendor product page",
@@ -570,6 +1139,30 @@
    "kind": "paper",
    "title": "Grattafiori et al., The Llama 3 Herd of Models (arXiv 2407.21783)",
    "url": "https://arxiv.org/abs/2407.21783"
+  },
+  "megatron2021": {
+   "accessed": "2026-10-13",
+   "kind": "paper",
+   "title": "Narayanan et al., Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM (arXiv 2104.04473)",
+   "url": "https://arxiv.org/abs/2104.04473"
+  },
+  "nasa-air": {
+   "accessed": "2026-10-13",
+   "kind": "reference data",
+   "title": "NASA Glenn Research Center, Air Properties Definitions (sea-level standard day)",
+   "url": "https://www.grc.nasa.gov/www/k-12/airplane/airprop.html"
+  },
+  "nasa-gas": {
+   "accessed": "2026-10-13",
+   "kind": "reference data",
+   "title": "NASA Glenn Research Center, Equation of State (specific gas constant of air) and Specific Heats (ratio for air)",
+   "url": "https://www.grc.nasa.gov/www/k-12/airplane/eqstat.html"
+  },
+  "nist-water": {
+   "accessed": "2026-10-13",
+   "kind": "reference data",
+   "title": "NIST Chemistry WebBook, SRD 69: Water, condensed phase thermochemistry (liquid-phase Shomate equation, Chase 1998)",
+   "url": "https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Mask=2"
   },
   "nvlink-page": {
    "accessed": "2026-10-13",
@@ -601,6 +1194,18 @@
    "title": "NVIDIA Quantum-X800 InfiniBand platform page",
    "url": "https://www.nvidia.com/en-us/networking/products/infiniband/quantum-x800/"
   },
+  "smooth-blog": {
+   "accessed": "2026-10-13",
+   "kind": "vendor technical blog",
+   "title": "How New GB300 NVL72 Features Provide Steady Power for AI (NVIDIA Technical Blog)",
+   "url": "https://developer.nvidia.com/blog/how-new-gb300-nvl72-features-provide-steady-power-for-ai/"
+  },
+  "splitwise": {
+   "accessed": "2026-10-13",
+   "kind": "paper",
+   "title": "Patel et al., Splitwise: Efficient generative LLM inference using phase splitting (arXiv 2311.18677)",
+   "url": "https://arxiv.org/abs/2311.18677"
+  },
   "supernic-page": {
    "accessed": "2026-10-13",
    "kind": "vendor product page",
@@ -619,11 +1224,53 @@
    "title": "NVIDIA DGX SuperPOD Reference Architecture (DGX GB200), Network Fabrics (Table 3)",
    "url": "https://docs.nvidia.com/dgx-superpod/reference-architecture-scalable-infrastructure-gb200/latest/network-fabrics.html"
   },
+  "tpu-7x": {
+   "accessed": "2026-10-13",
+   "kind": "vendor documentation",
+   "title": "Google Cloud documentation, TPU7x (Ironwood) (system architecture)",
+   "url": "https://cloud.google.com/tpu/docs/tpu7x"
+  },
+  "tpu-v4": {
+   "accessed": "2026-10-13",
+   "kind": "paper",
+   "title": "Jouppi et al., TPU v4: An Optically Reconfigurable Supercomputer for Machine Learning with Hardware Support for Embeddings (arXiv 2304.01433)",
+   "url": "https://arxiv.org/abs/2304.01433"
+  },
+  "tpu-v5p": {
+   "accessed": "2026-10-13",
+   "kind": "vendor documentation",
+   "title": "Google Cloud documentation, TPU v5p (system architecture and configurations)",
+   "url": "https://cloud.google.com/tpu/docs/v5p"
+  },
+  "trainium-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "AWS Trainium (product page; Trainium3 UltraServers)",
+   "url": "https://aws.amazon.com/ai/machine-learning/trainium/"
+  },
+  "trn2-page": {
+   "accessed": "2026-10-13",
+   "kind": "vendor product page",
+   "title": "Amazon EC2 Trn2 instances and UltraServers (product page)",
+   "url": "https://aws.amazon.com/ec2/instance-types/trn2/"
+  },
   "vr-page": {
    "accessed": "2026-10-13",
    "kind": "vendor product page",
    "title": "NVIDIA Vera Rubin NVL72 product page, Specifications (marked 'Available Now' on the access date)",
    "url": "https://www.nvidia.com/en-us/data-center/vera-rubin-nvl72/"
+  },
+  "water-blog": {
+   "accessed": "2026-10-13",
+   "kind": "vendor blog",
+   "title": "Chill Factor: NVIDIA Blackwell Platform Boosts Water Efficiency by Over 300x (NVIDIA Blog)",
+   "url": "https://blogs.nvidia.com/blog/blackwell-platform-water-efficiency-liquid-cooling-data-centers-ai-factories/"
+  },
+  "young1974": {
+   "accessed": "2026-10-13",
+   "kind": "paper",
+   "title": "Young, A first order approximation to the optimum checkpoint interval, Communications of the ACM 1974 (doi:10.1145/361147.361115)",
+   "url": "https://doi.org/10.1145/361147.361115"
   }
  },
  "superpodRules": {

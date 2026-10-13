@@ -40,6 +40,14 @@ const SISTER_SLUGS: Record<string, string[]> = {
     "09-parallelism",
     "11-why-disaggregate",
     "12-moving-the-kv-cache",
+    "13-live-simulator",
+  ],
+  "inference-tradeoffs-explained": [
+    "04-disaggregation",
+    "05-heterogeneous-and-optical-pools",
+    "06-kv-handoff-and-compression",
+    "11-power-and-energy",
+    "12-hardware-and-cost",
   ],
 };
 
@@ -56,9 +64,11 @@ for (const f of FILES) {
       expect(src.trimStart()).toMatch(/^<[A-Z][a-zA-Z]+Widget>/);
     });
 
-    it("cuts every TypeScript block from the model source", () => {
+    it("cuts every TypeScript block from the model or engine source", () => {
       const model = squash(
-        readFileSync(path.join(ROOT, "src/lib/racks/model.ts"), "utf8"),
+        ["model.ts", "disagg.ts"]
+          .map((f) => readFileSync(path.join(ROOT, "src/lib/racks", f), "utf8"))
+          .join("\n"),
       );
       const blocks = [...src.matchAll(/```ts\n([\s\S]*?)```/g)].map(
         (m) => m[1]!,

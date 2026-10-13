@@ -15,6 +15,12 @@ const PAGES = [
   "/learn/03-trays-and-nodes",
   "/learn/04-scale-up-nvlink",
   "/learn/05-scale-out-network",
+  "/learn/06-power",
+  "/learn/07-cooling",
+  "/learn/08-disaggregated-inference",
+  "/learn/09-training-clusters",
+  "/learn/10-other-designs",
+  "/learn/11-cost",
 ];
 
 for (const [scheme, width] of [

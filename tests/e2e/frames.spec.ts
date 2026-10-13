@@ -7,14 +7,22 @@
 import { expect, test, type Locator } from "@playwright/test";
 
 import fx from "../fixtures/rack_fixtures.json";
+import dfx from "../fixtures/disagg_parity.json";
 
 import {
+  disaggCaption,
   fillCaption,
   ladderCaption,
+  layoutCaption,
+  loopCaption,
   pipeCaption,
   ringCaption,
+  smoothCaption,
+  tcoCaption,
+  torusCaption,
   treeCaption,
 } from "@/lib/racks/captions";
+import type { Counts } from "@/lib/racks/disagg";
 import {
   fatTree,
   fit,
@@ -23,8 +31,16 @@ import {
   packageOf,
   paths,
   pipeline,
+  type CoolingLoop,
   type FillStep,
+  type Layout,
+  type LayoutStep,
+  type LoopStep,
   type PipeStep,
+  type SmoothStep,
+  type Smoothing,
+  type TcoStep,
+  type TorusStep,
   type Ring,
   type Rung,
   type TreeStep,
@@ -193,4 +209,155 @@ test("fabric: 9,216 GPUs on 64-port switches, then 144-port", async ({
     treeCaption(t2, st2[st2.length - 1]!, st2.length),
   );
   await expect(fig.locator("[data-row='cores']")).toHaveCount(0);
+});
+
+test("power smoothing: 0.25 s swings with 65 J a GPU, then none", async ({
+  page,
+}) => {
+  await page.goto("/learn/06-power");
+  const fig = page.getByTestId("power-widget");
+  const c = fx.smoothing.find((x) => x.half === 0.25 && x.j === 65)!;
+  const steps = c.steps as SmoothStep[];
+  for (const s of [0, 3, 8, 24]) {
+    await show(fig, s);
+    await expect(fig.getByTestId("caption")).toHaveText(
+      smoothCaption(c.out as Smoothing, steps[s]!, steps.length),
+    );
+  }
+  await change(fig, () => fig.getByRole("radio", { name: "none" }).click());
+  const n = fx.smoothing.find((x) => x.half === 0.25 && x.j === 0)!;
+  await show(fig, 9);
+  await expect(fig.getByTestId("caption")).toHaveText(
+    smoothCaption(n.out as Smoothing, (n.steps as SmoothStep[])[9]!, 25),
+  );
+});
+
+test("cooling loop: 120 kW with 30 °C water, then 1 MW with 40 °C", async ({
+  page,
+}) => {
+  await page.goto("/learn/07-cooling");
+  const fig = page.getByTestId("cooling-widget");
+  const loop = (q: number, t: number, d: number) =>
+    fx.coolingLoop.find(
+      (x) => x.q === q && x.frac === 0.9 && x.tfac === t && x.dt === d,
+    )!.out as CoolingLoop;
+  const steps = (q: number, t: number, d: number) =>
+    fx.loopSteps.find((x) => x.q === q && x.tfac === t && x.dt === d)!
+      .out as LoopStep[];
+  const a = steps(120e3, 30, 10);
+  for (const s of [0, 7, 13, 22]) {
+    await show(fig, s);
+    await expect(fig.getByTestId("caption")).toHaveText(
+      loopCaption(loop(120e3, 30, 10), a[s]!, 24),
+    );
+    await expect(fig.locator("[data-parcel='0']")).toHaveAttribute(
+      "data-seg",
+      a[s]!.parcels[0]!.seg,
+    );
+  }
+  await change(fig, () => fig.getByRole("radio", { name: "1 MW" }).click());
+  await change(fig, () => fig.getByRole("radio", { name: "40 °C" }).click());
+  await change(fig, () =>
+    fig.getByRole("radio", { name: "5 K", exact: true }).click(),
+  );
+  await show(fig, 10);
+  await expect(fig.getByTestId("caption")).toHaveText(
+    loopCaption(loop(1e6, 40, 5), steps(1e6, 40, 5)[10]!, 24),
+  );
+});
+
+test("disaggregated inference: the recorded stage counts on the page", async ({
+  page,
+}) => {
+  await page.goto("/learn/08-disaggregated-inference");
+  const fig = page.getByTestId("disagg-widget");
+  const sim = fig.locator("[data-sim]");
+  const check = async (key: string) => {
+    await expect(sim).toHaveAttribute("data-sim", "ready", { timeout: 30000 });
+    const c = dfx.cases.find((x) => x.key === key)!;
+    const n = Number(await fig.getByTestId("scrub").getAttribute("max")) + 1;
+    for (const f of c.frames) {
+      await show(fig, f.frame);
+      await expect(fig.getByTestId("caption")).toHaveText(
+        disaggCaption(f.frame, n, f.t, f.counts as Counts, 1500),
+      );
+    }
+  };
+  await check("12-6.nvlink.b200");
+  await change(fig, () => fig.getByRole("radio", { name: "100GbE" }).click());
+  await check("12-6.eth100.b200");
+  await change(fig, () => fig.getByRole("radio", { name: "NVLink" }).click());
+  await change(fig, () => fig.getByRole("radio", { name: "decode" }).click());
+  await check("12-6.nvlink.ctx-decode");
+  await expect(fig.locator("[data-instance='decode']")).toHaveCount(6);
+});
+
+test("training layout: 8 x 4 x 4 on NVL72 racks, then on 8-GPU servers", async ({
+  page,
+}) => {
+  await page.goto("/learn/09-training-clusters");
+  const fig = page.getByTestId("training-widget");
+  const find = (dom: number) => {
+    const l = fx.layout.find(
+      (x) => x.tp === 8 && x.pp === 4 && x.dp === 4 && x.domain === dom,
+    )!.out as Layout;
+    const st = fx.layoutSteps.find(
+      (x) => x.tp === 8 && x.pp === 4 && x.dp === 4 && x.domain === dom,
+    )!.out as LayoutStep[];
+    return { l, st };
+  };
+  const a = find(72);
+  for (const s of [0, 5, 15]) {
+    await show(fig, s);
+    await expect(fig.getByTestId("caption")).toHaveText(
+      layoutCaption(a.l, a.st[s]!, a.st.length),
+    );
+  }
+  await change(fig, () =>
+    fig.getByRole("radio", { name: "8-GPU server" }).click(),
+  );
+  const b = find(8);
+  await show(fig, 6);
+  await expect(fig.getByTestId("caption")).toHaveText(
+    layoutCaption(b.l, b.st[6]!, b.st.length),
+  );
+  await expect(fig.locator("[data-link='net']")).toHaveCount(1);
+});
+
+test("torus: hop shells of a 4x4x4 cube, then 8x8x8", async ({ page }) => {
+  await page.goto("/learn/10-other-designs");
+  const fig = page.getByTestId("torus-widget");
+  const k4 = fx.torus.find((x) => x.k === 4)!;
+  for (const s of [0, 2, 6]) {
+    await show(fig, s);
+    await expect(fig.getByTestId("caption")).toHaveText(
+      torusCaption((k4.steps as TorusStep[])[s]!, 64, 6),
+    );
+  }
+  await expect(fig.locator("[data-hops='6']")).toHaveCount(1);
+  await change(fig, () => fig.getByRole("radio", { name: "8×8×8" }).click());
+  const k8 = fx.torus.find((x) => x.k === 8)!;
+  await show(fig, 5);
+  await expect(fig.getByTestId("caption")).toHaveText(
+    torusCaption((k8.steps as TorusStep[])[5]!, 512, 12),
+  );
+});
+
+test("cost: quarter by quarter at $3.5M, then $2M", async ({ page }) => {
+  await page.goto("/learn/11-cost");
+  const fig = page.getByTestId("cost-widget");
+  const steps = (capex: number) =>
+    fx.tcoSteps.find((x) => x.capex === capex)!.out as TcoStep[];
+  const a = steps(3.5e6);
+  for (const s of [0, 4, 16]) {
+    await show(fig, s);
+    await expect(fig.getByTestId("caption")).toHaveText(
+      tcoCaption(a[s]!, a.length),
+    );
+  }
+  await change(fig, () => fig.getByRole("radio", { name: "$2M" }).click());
+  await show(fig, 9);
+  await expect(fig.getByTestId("caption")).toHaveText(
+    tcoCaption(steps(2e6)[9]!, 17),
+  );
 });

@@ -28,6 +28,8 @@ type Clip = {
   fps: number;
   /** a radio to press first (a parameter), if any */
   radio?: string;
+  /** record every n-th frame only (long animations) */
+  stride?: number;
 };
 
 const CLIPS: Clip[] = [
@@ -61,7 +63,37 @@ const CLIPS: Clip[] = [
     widget: "fabric-widget",
     fps: 1,
   },
+  { name: "power", path: "/learn/06-power", widget: "power-widget", fps: 4 },
+  {
+    name: "cooling",
+    path: "/learn/07-cooling",
+    widget: "cooling-widget",
+    fps: 6,
+  },
+  {
+    name: "disagg",
+    path: "/learn/08-disaggregated-inference",
+    widget: "disagg-widget",
+    fps: 10,
+    stride: 2,
+  },
+  {
+    name: "training",
+    path: "/learn/09-training-clusters",
+    widget: "training-widget",
+    fps: 2,
+  },
+  {
+    name: "torus",
+    path: "/learn/10-other-designs",
+    widget: "torus-widget",
+    fps: 1,
+  },
+  { name: "cost", path: "/learn/11-cost", widget: "cost-widget", fps: 3 },
 ];
+
+/** `ONLY=power,cost pnpm animations` records just those clips. */
+const ONLY = (process.env.ONLY ?? "").split(",").filter(Boolean);
 
 async function main(): Promise<void> {
   mkdirSync(OUT, { recursive: true });
@@ -72,19 +104,25 @@ async function main(): Promise<void> {
     reducedMotion: "reduce",
   });
   const page = await context.newPage();
-  for (const c of CLIPS) {
+  for (const c of CLIPS.filter((x) => !ONLY.length || ONLY.includes(x.name))) {
     const dir = mkdtempSync(path.join(tmpdir(), `air-${c.name}-`));
     await page.goto(BASE + c.path, { waitUntil: "networkidle" });
     const fig = page.getByTestId(c.widget);
     await fig.waitFor();
     if (c.radio) await fig.getByRole("radio", { name: c.radio }).click();
+    // chapter 8 draws once its simulation has run in the worker
+    const sim = fig.locator("[data-sim]");
+    if (await sim.count())
+      await sim.and(page.locator("[data-sim='ready']")).waitFor();
     const scrub = fig.getByTestId("scrub");
     const max = Number(await scrub.getAttribute("max"));
     const visual = fig.getByTestId("visual");
-    for (let s = 0; s <= max; s++) {
+    const stride = c.stride ?? 1;
+    let i = 0;
+    for (let s = 0; s <= max; s += stride) {
       await scrub.fill(String(s));
       await visual.screenshot({
-        path: path.join(dir, `f${String(s).padStart(4, "0")}.png`),
+        path: path.join(dir, `f${String(i++).padStart(4, "0")}.png`),
       });
     }
     const input = path.join(dir, "f%04d.png");
@@ -128,7 +166,7 @@ async function main(): Promise<void> {
     ]);
     rmSync(dir, { recursive: true, force: true });
     console.log(
-      `wrote ${path.relative(process.cwd(), gif)} and .webm (${max + 1} frames)`,
+      `wrote ${path.relative(process.cwd(), gif)} and .webm (${i} frames)`,
     );
   }
   await browser.close();
