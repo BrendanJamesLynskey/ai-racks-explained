@@ -23,6 +23,13 @@ import { gpu } from "@/lib/racks/model";
 import { formatValue, lookup } from "@/lib/racks/values";
 import { SECTIONS } from "@/lib/mdx/sections";
 
+/** The author credit: the last line of the About page (brief 35). */
+const CREDIT = [
+  'data-author-credit="true"',
+  "Written and built by",
+  'href="https://github.com/BrendanJamesLynskey">Brendan Lynskey</a>',
+];
+
 type Result = { path: string; ok: boolean; detail: string };
 
 const headers: Record<string, string> = process.env.VERCEL_BYPASS
@@ -87,6 +94,7 @@ async function main(): Promise<void> {
       "2026-10-13",
     ]),
     checkPage(base, "/about", [
+      ...CREDIT,
       "Validation band",
       'data-check="superpod-16su-core"',
     ]),

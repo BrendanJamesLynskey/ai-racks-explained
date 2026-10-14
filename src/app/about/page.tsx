@@ -11,6 +11,7 @@ import { ACCESSED, validation } from "@/lib/racks/model";
 import { formatValue, lookup } from "@/lib/racks/values";
 import { pct } from "@/lib/format";
 import {
+  AUTHOR,
   GITHUB_URL,
   INFERENCE_URL,
   KERNELS_URL,
@@ -250,6 +251,15 @@ export default function AboutPage(): JSX.Element {
           the README records where each piece came from.
         </p>
       </div>
+      <p
+        className="mt-12 text-sm text-neutral-600 dark:text-neutral-400"
+        data-author-credit
+      >
+        Written and built by{" "}
+        <a className={A} href={AUTHOR.url}>
+          {AUTHOR.name}
+        </a>
+      </p>
     </main>
   );
 }
