@@ -161,7 +161,7 @@ the numbers the chapters use and the validation band to
 
 Chapter 8 does not use the rack model. It runs
 [Disaggregated_Inference_Sim](https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim)'s
-own JavaScript engine, vendored byte for byte at commit `e40534f`
+own JavaScript engine, vendored byte for byte at commit `ba37774`
 (`pnpm vendor <commit>` copies `web/sim_engine.js` and `examples/results.md`
 from `git show` and records their SHA-256 in
 [`src/lib/racks/vendor/VENDORED.json`](src/lib/racks/vendor/VENDORED.json)),

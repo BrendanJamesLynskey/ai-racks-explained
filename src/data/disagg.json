@@ -1,6 +1,6 @@
 {
  "simulator": "https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim",
- "commit": "e40534f2416d0402ef8dc44307f5f064c7d368f6",
+ "commit": "ba37774fe2315ca960d7471be352382e301f89a1",
  "gpus": 72,
  "tp": 4,
  "instances": 18,

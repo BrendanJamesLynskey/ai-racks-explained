@@ -530,7 +530,7 @@ Liquid loop of a 120 kW rack, 90% of the heat to liquid (illustrative), CDU appr
 
 ### Chapter 8: disaggregated inference on one rack (Disaggregated_Inference_Sim)
 
-Simulator https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim at `e40534f` (vendored; `scripts/disagg_reference.py`). 72 GPUs of the simulator's GB200 preset as 18 instances of TP 4, serving Llama-3-70B; 1,500 Poisson requests at 90/s (seed 1), prompts mean 3000 (cv 0.5), outputs mean 600 (cv 0.5); SLOs TTFT 2 s, TPOT 50 ms. Offered output: 52824.3 tokens/s. Power and energy use the simulator's illustrative coefficients (GPU power only).
+Simulator https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim at `ba37774` (vendored; `scripts/disagg_reference.py`). 72 GPUs of the simulator's GB200 preset as 18 instances of TP 4, serving Llama-3-70B; 1,500 Poisson requests at 90/s (seed 1), prompts mean 3000 (cv 0.5), outputs mean 600 (cv 0.5); SLOs TTFT 2 s, TPOT 50 ms. Offered output: 52824.3 tokens/s. Power and energy use the simulator's illustrative coefficients (GPU power only).
 
 | prefill:decode | KV link | parts | TTFT p99 (s) | TPOT p50 (ms) | TPOT p99 (ms) | SLO met | hand-off mean (ms) | J per token | tokens/s per MW (GPU power) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
