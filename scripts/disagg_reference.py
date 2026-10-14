@@ -2,7 +2,7 @@
 
 Chapter 8 runs the simulator's own JavaScript engine (`web/sim_engine.js`, vendored byte for byte at the commit in
 `src/lib/racks/vendor/VENDORED.json` by `pnpm vendor <commit>`) in a Web Worker. This script runs the simulator's
-Python package at that same commit, on one GB200 NVL72-sized rack of the simulator's B200 preset, and writes:
+Python package at that same commit, on one GB200 NVL72-sized rack of the simulator's GB200 preset, and writes:
 
 * `public/racks/disagg/workload.json`: the requests (seeded Poisson arrivals, lognormal lengths), recorded so the
   browser replays exactly the requests Python used;
@@ -38,7 +38,7 @@ CHECK = "--check" in sys.argv
 SIM = Path(args[0]).resolve() if args else ROOT.parent / "Disaggregated_Inference_Sim"
 sys.path.insert(0, str(SIM / "src"))
 
-from disagg_sim.hardware import B200, LLAMA3_70B, Link, Parallel  # noqa: E402
+from disagg_sim.hardware import GB200, LLAMA3_70B, Link, Parallel  # noqa: E402
 from disagg_sim.metrics import summarise  # noqa: E402
 from disagg_sim.sim import SimConfig, simulate  # noqa: E402
 from disagg_sim.workload import LengthDist, poisson_workload, workload_rows  # noqa: E402
@@ -49,7 +49,9 @@ OUT_WL = ROOT / "public/racks/disagg/workload.json"
 OUT_DATA = ROOT / "src/data/disagg.json"
 OUT_FIX = ROOT / "tests/fixtures/disagg_parity.json"
 
-# The rack: 72 GPUs as 18 instances of 4 (tensor-parallel 4 over NVLink 5, the simulator's B200 preset).
+# The rack: 72 GPUs as 18 instances of 4 (tensor-parallel 4 over NVLink 5, the simulator's GB200 preset: one GPU of a
+# GB200 superchip, 186 GB at 8 TB/s). The simulator does not model the NVL72's 72-GPU NVLink domain itself; the rack's
+# NVLink hand-off below is how this script uses it.
 GPUS = 72
 TP = 4
 INSTANCES = GPUS // TP
@@ -63,10 +65,12 @@ LINKS = {
     "eth100": {"name": "One 100 GbE port", "bw": 12.5e9, "lat": 20e-6, "pjBit": 15.0},
 }
 LINK_ORDER = ("nvlink", "ib", "eth100")
-# An illustrative context-optimised part: the B200 preset's compute and power, with 128 GB of memory (Rubin CPX's
-# stated capacity) at 2 TB/s (an illustrative GDDR7-class bandwidth: the vendor gives none). Not a model of any product.
+# An illustrative context-optimised part: the rack GPU's (GB200 preset's) compute and power, with 128 GB of memory (Rubin
+# CPX's stated capacity) at 2 TB/s (an illustrative GDDR7-class bandwidth: the vendor gives none). It is derived from the
+# rack's own GPU so that it differs from it in memory only, the one thing the comparison is about. Not a model of any
+# product.
 CTX = {"name": "Context-optimised part (illustrative)", "B": 2e12, "M": 128e9}
-PARTS = ("b200", "ctx-prefill", "ctx-decode")
+PARTS = ("gb200", "ctx-prefill", "ctx-decode")
 RATE = 90.0  # requests per second offered to the rack
 N = 1500
 SEED = 1
@@ -76,17 +80,17 @@ TTFT_SLO = 2.0
 TPOT_SLO = 0.05
 FRAME_DT = 0.25  # seconds between animation frames
 FIXTURE_CASES = (
-    ((12, 6), "nvlink", "b200"),
-    ((12, 6), "ib", "b200"),
-    ((12, 6), "eth100", "b200"),
-    ((6, 12), "nvlink", "b200"),
+    ((12, 6), "nvlink", "gb200"),
+    ((12, 6), "ib", "gb200"),
+    ((12, 6), "eth100", "gb200"),
+    ((6, 12), "nvlink", "gb200"),
     ((12, 6), "nvlink", "ctx-prefill"),
     ((12, 6), "nvlink", "ctx-decode"),
 )
 FIXTURE_FRAMES = (8, 24, 40, 64)
 STAMPS = ("arrival", "prefill_start", "first_token", "kv_start", "kv_ready", "decode_start", "finish")
 NAN = struct.pack("<Q", 0x7FF8000000000000)
-CTX_DEVICE = replace(B200, name=CTX["name"], mem_bw=CTX["B"], mem_capacity=CTX["M"])
+CTX_DEVICE = replace(GB200, name=CTX["name"], mem_bw=CTX["B"], mem_capacity=CTX["M"])
 
 
 def git(*a: str) -> str:
@@ -129,7 +133,7 @@ def js_cfg(split, link: str, part: str) -> dict:
     """The engine's configuration (camelCase SimConfig keys); custom link and device keys are registered at run time."""
     cfg = {
         "model": "llama3-70b",
-        "device": "b200",
+        "device": "gb200",
         "devicesPerInstance": TP,
         "mode": "disagg",
         "nPrefill": split[0],
@@ -151,7 +155,7 @@ def py_cfg(split, link: str, part: str) -> SimConfig:
     lk = LINKS[link]
     return SimConfig(
         model=LLAMA3_70B,
-        device=B200,
+        device=GB200,
         devices_per_instance=TP,
         mode="disagg",
         n_prefill=split[0],
@@ -250,7 +254,7 @@ def main() -> int:
                 print(f"  {k}: ttft p99 {runs[k]['ttft_p99']:.3f} s, tpot p50 {runs[k]['tpot_p50'] * 1e3:.1f} ms",
                       file=sys.stderr)
 
-    # the summaries the chapter quotes, nested as split -> link -> part (values.ts reads "dis.12-6.nvlink.b200.ttft_p99")
+    # the summaries the chapter quotes, nested as split -> link -> part (values.ts reads "dis.12-6.nvlink.gb200.ttft_p99")
     nested: dict = {}
     for k, v in runs.items():
         s, link, part = k.split(".")
@@ -282,7 +286,7 @@ def main() -> int:
         "linkOrder": list(LINK_ORDER),
         "ctx": CTX,
         "parts": list(PARTS),
-        "b200": {"F": B200.peak_flops, "B": B200.mem_bw, "M": B200.mem_capacity, "tdp": B200.tdp_w},
+        "gb200": {"F": GB200.peak_flops, "B": GB200.mem_bw, "M": GB200.mem_capacity, "tdp": GB200.tdp_w},
         "cfgs": {key(s, lk, p): js_cfg(s, lk, p) for s in SPLITS for lk in LINK_ORDER for p in PARTS},
         "runs": nested,
     }

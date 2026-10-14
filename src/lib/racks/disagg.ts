@@ -20,7 +20,7 @@ import data from "@/data/disagg.json";
 
 export type Split = `${number}-${number}`;
 export type LinkKey = "nvlink" | "ib" | "eth100";
-export type Part = "b200" | "ctx-prefill" | "ctx-decode";
+export type Part = "gb200" | "ctx-prefill" | "ctx-decode";
 export type RunKey = `${Split}.${LinkKey}.${Part}`;
 
 /** One request: [arrival s, prompt tokens, output tokens]. */
@@ -93,7 +93,7 @@ export type DisaggData = {
   linkOrder: LinkKey[];
   ctx: { name: string; B: number; M: number };
   parts: Part[];
-  b200: { F: number; B: number; M: number; tdp: number };
+  gb200: { F: number; B: number; M: number; tdp: number };
   cfgs: Record<string, EngineConfig>;
   runs: Record<string, Record<string, Record<string, RunSummary>>>;
 };
@@ -132,7 +132,7 @@ export const engine: Engine = (globalThis as unknown as { DisaggSim: Engine })
 export function register(): void {
   for (const k of DISAGG.linkOrder) engine.LINKS[`rack-${k}`] = DISAGG.links[k];
   engine.DEVICES["rack-ctx"] = {
-    ...engine.DEVICES["b200"],
+    ...engine.DEVICES["gb200"],
     name: DISAGG.ctx.name,
     B: DISAGG.ctx.B,
     M: DISAGG.ctx.M,

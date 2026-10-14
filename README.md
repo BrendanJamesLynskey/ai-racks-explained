@@ -161,7 +161,7 @@ the numbers the chapters use and the validation band to
 
 Chapter 8 does not use the rack model. It runs
 [Disaggregated_Inference_Sim](https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim)'s
-own JavaScript engine, vendored byte for byte at commit `b187479`
+own JavaScript engine, vendored byte for byte at commit `ba37774`
 (`pnpm vendor <commit>` copies `web/sim_engine.js` and `examples/results.md`
 from `git show` and records their SHA-256 in
 [`src/lib/racks/vendor/VENDORED.json`](src/lib/racks/vendor/VENDORED.json)),
@@ -171,7 +171,8 @@ part are registered with the engine at run time
 stays unmodified. [`scripts/disagg_reference.py`](scripts/disagg_reference.py)
 runs the simulator's Python package at the same commit on the same 1,500
 recorded requests (`public/racks/disagg/workload.json`) for all 36
-configurations (4 pool splits × 3 links × 3 part placements) and writes
+configurations (4 pool splits × 3 links × 3 part placements) of 72 GPUs of
+the simulator's GB200 preset as 18 TP4 instances, and writes
 `src/data/disagg.json` and `tests/fixtures/disagg_parity.json`;
 `tests/unit/disagg.test.ts` requires the browser engine to reproduce every
 request's seven timestamps bit for bit (SHA-256 of the doubles) on six of
@@ -208,9 +209,11 @@ two gaps from 1 are rounding in the published figures
 - Cooling: 90% of the heat on cold plates, the temperature rises and the
   facility temperatures; water at 1 kg per litre.
 - Chapter 8: the simulator's power coefficients (GPU power only), its link
-  latencies and energy per bit, and the context-optimised part (the B200
-  preset's compute, 128 GB at 2 TB/s); the simulator's B200 preset is the
-  DGX B200 GPU.
+  latencies and energy per bit, and the context-optimised part (the GB200
+  preset's compute, 128 GB at 2 TB/s). The rack runs on the simulator's
+  GB200 preset (one GPU of a GB200 superchip: 186 GB, 8 TB/s, 1,200 W; since
+  brief 34, before which it ran on the DGX B200 preset); the simulator does
+  not model the 72-GPU NVLink domain itself.
 - Training: a 60 s checkpoint save; one run's interruption rate applied to
   every job size; ranks placed in order, with no topology-aware placement.
 - Other designs: a TPU chip's inter-chip bandwidth split equally over its six

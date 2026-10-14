@@ -355,7 +355,11 @@ export function BusbarTable(): JSX.Element {
 }
 
 /** Chapter 8: the recorded runs (scripts/disagg_reference.py). */
-export function DisaggTable({ part = "b200" }: { part?: string }): JSX.Element {
+export function DisaggTable({
+  part = "gb200",
+}: {
+  part?: string;
+}): JSX.Element {
   const rows: { split: Split; link: (typeof DISAGG.linkOrder)[number] }[] = [];
   for (const [a, b] of DISAGG.splits)
     for (const link of DISAGG.linkOrder)
@@ -369,7 +373,7 @@ export function DisaggTable({ part = "b200" }: { part?: string }): JSX.Element {
     eth100: "100GbE",
   } as const;
   const partName = {
-    b200: "B200 in both pools",
+    gb200: "GB200 in both pools",
     "ctx-prefill": "context part for prefill",
     "ctx-decode": "context part for decode",
   } as const;

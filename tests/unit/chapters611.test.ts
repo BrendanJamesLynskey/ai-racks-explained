@@ -73,14 +73,14 @@ describe("values the chapters quote", () => {
   });
   it("disaggregation: the recorded runs and their shape", () => {
     const ttft = (s: string) =>
-      lookup(`dis.${s}.nvlink.b200.ttft_p99`) as number;
+      lookup(`dis.${s}.nvlink.gb200.ttft_p99`) as number;
     expect(ttft("6-12")).toBeGreaterThan(lookup("dis.meta.ttft_slo") as number);
     expect(ttft("12-6")).toBeLessThan(ttft("9-9"));
     const tpot = (s: string) =>
-      lookup(`dis.${s}.nvlink.b200.tpot_p99`) as number;
+      lookup(`dis.${s}.nvlink.gb200.tpot_p99`) as number;
     expect(tpot("14-4")).toBeGreaterThan(tpot("12-6"));
     expect(lookup("dis.12-6.nvlink.ctx-decode.slo")).toBeLessThan(0.5);
-    expect(lookup("dis.12-6.nvlink.b200.slo")).toBe(1);
+    expect(lookup("dis.12-6.nvlink.gb200.slo")).toBe(1);
     expect(lookup("dis.meta.kv_per_token")).toBe(327680);
     expect(lookup("dis.link.eth100.kv_time")).toBeGreaterThan(
       lookup("dis.link.ib.kv_time") as number,
