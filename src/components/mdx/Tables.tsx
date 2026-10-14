@@ -355,7 +355,11 @@ export function BusbarTable(): JSX.Element {
 }
 
 /** Chapter 8: the recorded runs (scripts/disagg_reference.py). */
-export function DisaggTable({ part = "gb200" }: { part?: string }): JSX.Element {
+export function DisaggTable({
+  part = "gb200",
+}: {
+  part?: string;
+}): JSX.Element {
   const rows: { split: Split; link: (typeof DISAGG.linkOrder)[number] }[] = [];
   for (const [a, b] of DISAGG.splits)
     for (const link of DISAGG.linkOrder)
