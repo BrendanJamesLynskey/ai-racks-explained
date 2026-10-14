@@ -78,7 +78,9 @@ describe("the vendored simulator", () => {
     register();
     expect(engine.LINKS["rack-nvlink"]).toEqual(DISAGG.links.nvlink);
     expect(engine.DEVICES["rack-ctx"]!["B"]).toBe(DISAGG.ctx.B);
-    expect(engine.DEVICES["rack-ctx"]!["F"]).toBe(engine.DEVICES["b200"]!["F"]);
+    expect(engine.DEVICES["rack-ctx"]!["F"]).toBe(
+      engine.DEVICES["gb200"]!["F"],
+    );
   });
 });
 
@@ -112,7 +114,7 @@ describe("parity with the Python package", () => {
 });
 
 describe("frames", () => {
-  const run = runRack(configFor("12-6.nvlink.b200"), workload.rows);
+  const run = runRack(configFor("12-6.nvlink.gb200"), workload.rows);
   it("counts every arrived request once", () => {
     for (const t of [0, 1, 5, 20]) {
       const c = countsAt(run.reqs, t);
@@ -132,7 +134,7 @@ describe("frames", () => {
     expect(l.lanes.length).toBe(16);
   });
   it("names unknown configurations", () => {
-    expect(() => configFor("1-1.nvlink.b200" as RunKey)).toThrow(
+    expect(() => configFor("1-1.nvlink.gb200" as RunKey)).toThrow(
       /no configuration/,
     );
   });

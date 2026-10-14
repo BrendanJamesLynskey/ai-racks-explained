@@ -74,7 +74,7 @@ export default function DisaggWidget({
 }): JSX.Element {
   const [split, setSplit] = useState<Split>("12-6");
   const [link, setLink] = useState<LinkKey>("nvlink");
-  const [part, setPart] = useState<Part>("b200");
+  const [part, setPart] = useState<Part>("gb200");
   const [hover, setHover] = useState<string | null>(null);
   const [run, setRun] = useState<{ key: RunKey; run: Run } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -349,7 +349,7 @@ export default function DisaggWidget({
     <AnimationPanel
       testId="disagg-widget"
       title="Prefill and decode pools in one rack"
-      summary={`Disaggregated_Inference_Sim's own engine (commit ${DISAGG.commit.slice(0, 7)}), run in your browser on ${DISAGG.n.toLocaleString("en-GB")} requests arriving at ${DISAGG.rate} a second: ${DISAGG.modelName} on the simulator's B200 preset. Power coefficients and the context-optimised part are illustrative.`}
+      summary={`Disaggregated_Inference_Sim's own engine (commit ${DISAGG.commit.slice(0, 7)}), run in your browser on ${DISAGG.n.toLocaleString("en-GB")} requests arriving at ${DISAGG.rate} a second: ${DISAGG.modelName} on the simulator's GB200 preset. Power coefficients and the context-optimised part are illustrative.`}
       stepper={st}
       stepLabel="frame"
       caption={
@@ -389,7 +389,7 @@ export default function DisaggWidget({
             label="Context-optimised part in"
             value={part}
             options={[
-              { value: "b200", label: "neither" },
+              { value: "gb200", label: "neither" },
               { value: "ctx-prefill", label: "prefill" },
               { value: "ctx-decode", label: "decode" },
             ]}

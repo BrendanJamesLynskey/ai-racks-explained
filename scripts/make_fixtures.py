@@ -463,7 +463,7 @@ def results_md() -> str:
     D = DISAGG
     L.append(
         f"Simulator {D['simulator']} at `{D['commit'][:7]}` (vendored; `scripts/disagg_reference.py`). {D['gpus']} GPUs of "
-        f"the simulator's B200 preset as {D['instances']} instances of TP {D['tp']}, serving {D['modelName']}; "
+        f"the simulator's GB200 preset as {D['instances']} instances of TP {D['tp']}, serving {D['modelName']}; "
         f"{D['n']:,} Poisson requests at {D['rate']:g}/s (seed {D['seed']}), prompts mean {D['promptMean']:g} (cv "
         f"{D['promptCv']:g}), outputs mean {D['outputMean']:g} (cv {D['outputCv']:g}); SLOs TTFT {D['ttftSlo']:g} s, "
         f"TPOT {D['tpotSlo'] * 1e3:g} ms. Offered output: {D['offeredTokS']:.6g} tokens/s. Power and energy use the "

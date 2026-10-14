@@ -97,7 +97,7 @@ async function main(): Promise<void> {
     ),
     checkPage(base, "/racks/disagg/workload.json", ['"rows"']),
     checkPage(base, "/learn/08-disaggregated-inference", [
-      'data-run="12-6.nvlink.b200"',
+      'data-run="12-6.nvlink.gb200"',
       "Disaggregated_Inference_Sim/blob/",
     ]),
     ...SECTIONS.map((x) =>

@@ -96,7 +96,10 @@ export default function AboutPage(): JSX.Element {
             Disaggregated_Inference_Sim
           </a>
           &apos;s own JavaScript engine, vendored byte for byte at commit{" "}
-          <code>{DISAGG.commit.slice(0, 7)}</code>, in a Web Worker.{" "}
+          <code>{DISAGG.commit.slice(0, 7)}</code>, in a Web Worker, on the
+          simulator&apos;s GB200 preset (one GPU of a GB200 superchip, from
+          NVIDIA&apos;s per-GPU figures; its section 28 compares it with the
+          H100, H200 and B200 presets).{" "}
           <a href={repoFile("scripts/disagg_reference.py")} className={A}>
             scripts/disagg_reference.py
           </a>{" "}

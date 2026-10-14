@@ -1,17 +1,17 @@
 {
   "repository": "https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim",
-  "commit": "b187479436e573631563d78af80ca4e960a501bc",
-  "committed": "2026-10-11T23:55:38+01:00",
+  "commit": "e40534f2416d0402ef8dc44307f5f064c7d368f6",
+  "committed": "2026-10-14T15:43:56+01:00",
   "files": [
     {
       "path": "web/sim_engine.js",
       "file": "sim_engine.js",
-      "sha256": "c7c1d2bdb0b19df050c0a0c79feec7b183703d3622da5fb3b97c1fa8708e0478"
+      "sha256": "a50782d76f68439b9f10c94901d312dafeb325164a547995621da7471f697de5"
     },
     {
       "path": "examples/results.md",
       "file": "results.md",
-      "sha256": "c0954a23748c3c52f7494eb8b4462598ba9d7ca60800d9295c160b4406317ec8"
+      "sha256": "1c08711c91c1ff2bea50cf803523593ef2efb02eb30f2a1dfaf6a96a753a141c"
     }
   ]
 }

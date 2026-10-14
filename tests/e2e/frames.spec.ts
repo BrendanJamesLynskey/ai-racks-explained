@@ -283,9 +283,9 @@ test("disaggregated inference: the recorded stage counts on the page", async ({
       );
     }
   };
-  await check("12-6.nvlink.b200");
+  await check("12-6.nvlink.gb200");
   await change(fig, () => fig.getByRole("radio", { name: "100GbE" }).click());
-  await check("12-6.eth100.b200");
+  await check("12-6.eth100.gb200");
   await change(fig, () => fig.getByRole("radio", { name: "NVLink" }).click());
   await change(fig, () => fig.getByRole("radio", { name: "decode" }).click());
   await check("12-6.nvlink.ctx-decode");
