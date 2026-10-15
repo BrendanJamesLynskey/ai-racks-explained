@@ -23,7 +23,7 @@ GPU executes the maths) and
 (inside a matrix engine). The sites share one design system and link to each
 other from the header, in four tracks, and the header always shows where you
 are ("Track › Site"): "Foundations" (Decoder · Training), "Hardware" (Kernels
-· Silicon · Racks), "Inference" (Serving · Architectures · Numerics ·
+· Systolic · Accelerators · Racks), "Inference" (Serving · Architectures · Numerics ·
 Trade-offs) and "Agents". Chapters link the
 [Training](https://transformer-training-explained.vercel.app/training) and
 [Serving](https://llm-inference-explained.vercel.app/) chapters they build on,
