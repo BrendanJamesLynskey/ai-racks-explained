@@ -27,6 +27,7 @@ const SISTER_SLUGS: Record<string, string[]> = {
     "08-reductions",
   ],
   "systolic-arrays-explained": ["07-the-tpu"],
+  "ai-accelerators-explained": ["10-choosing"],
   "transformer-training-explained": [
     "10-memory",
     "11-data-parallelism",
