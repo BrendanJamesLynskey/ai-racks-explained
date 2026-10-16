@@ -17,6 +17,27 @@ NVLink switches can also do the reduction themselves: NVIDIA's switches since th
 
 </Layer>
 
+## Small messages: the latency term
+
+<AlphaBetaWidget>
+  <Eq
+    label="With a fixed cost alpha per step, the ring all-reduce takes two times n minus 1 alphas plus two times n minus 1 over n times S over B; the in-switch reduction takes one alpha plus S over B"
+    tex="\begin{gathered} T_{\text{ring}} = \htmlClass{hl-rs}{2(n-1)\,\alpha} + \frac{2(n-1)}{n}\,\frac{S}{\htmlClass{hl-nvl}{B}} \\ T_{\text{in-switch}} = \alpha_{\text{s}} + \frac{S}{B} \end{gathered}"
+  />
+</AlphaBetaWidget>
+
+<Layer kind="concept">
+
+The ring above is timed by bandwidth alone, which is right for the gigabytes of a training step's gradients and wrong for the messages a decode step sends. Every step of a collective also pays a fixed cost: launching the transfer, synchronising with the neighbour, the trip through the switch. Call it $\alpha$. The ring has $2(n-1)$ steps, so it pays $2(n-1)\alpha$ before a single byte's bandwidth counts; the in-switch reduction pays one fixed cost $\alpha_{\text{s}}$.
+
+The model takes $\alpha$ from measurement. On an eight-GPU NVLink 4 node, NCCL's all-reduce of small messages takes about <V of="ab.ringSmall" fmt="time" /> as a ring and <V of="ab.nvlsSmall" fmt="time" /> through the switches (NVLS), for anything up to 64 KiB ([Ma et al., 2026](https://arxiv.org/abs/2606.05951), section VII-C). Read as $2(n-1)\alpha$ that is <V of="ab.alphaRing" fmt="time" /> per ring step. NVIDIA does not publish NVLink 5's latency, so the B200 curve uses the same $\alpha$: an assumption, labelled in the widget.
+
+Now a tensor-parallel decode step. Llama 3 70B's all-reduce at batch 8 is <V of="ab.dec8.size" fmt="bytes" /> (8 tokens of <V of="ab.d70" fmt="int" /> 16-bit values). On eight B200s it takes <V of="ab.dec8.ring.t" fmt="time" /> as a ring, of which <V of="ab.dec8.ring.latShare" fmt="pct" /> is the fixed cost; the bandwidth-only formula says <V of="ab.dec8.bwOnly" fmt="time" />, <V of="ab.dec8under" fmt="num" /> times too little. Below the crossover, <V of="ab.dec8.ring.crossover" fmt="bytes" /> for a ring of eight, doubling NVLink's bandwidth hardly helps; cutting the steps does. That is why the in-switch reduction and one-shot algorithms (every GPU reads everyone's data directly in one step) matter for decode, and why tensor parallelism stays inside the NVLink domain: the network adds its own latency as well as less bandwidth.
+
+**A measured check.** For large messages the same paper measures NCCL's NVLS all-reduce at <V of="ab.nvlsBig" fmt="rate" /> on that node. The model's in-switch bound for a gigabyte there is <V of="val.nccl-nvls-h200.model" fmt="rate" />, so the bound is <V of="val.nccl-nvls-h200.ratio" fmt="num" /> times what NCCL reaches. The paper does not say whether its figure is NCCL's algorithm or bus bandwidth; if it were bus bandwidth, NCCL would reach less of the bound still. This is the site's first check of the model against a measurement rather than against the vendor's own arithmetic ([the checks](/about#validation)).
+
+</Layer>
+
 ## The NVL72 rack as one domain
 
 <Nvl72Diagram />
@@ -27,7 +48,7 @@ It matters most for **all-to-all**. An expert-parallel layer across all <V of="s
 
 <Callout kind="illustrative">
 
-Bandwidth terms only: no latency, no protocol overhead, perfect overlap of sends. NVLink figures are NVIDIA's bidirectional totals halved. The in-switch reduction is modelled as each GPU sending and receiving the vector once; how close real collectives come to that depends on the library and the message size.
+The ring and all-to-all times in this section are bandwidth terms only (the latency term is above, for all-reduce): no protocol overhead, perfect overlap of sends. NVLink figures are NVIDIA's bidirectional totals halved. The in-switch reduction is modelled as each GPU sending and receiving the vector once; how close real collectives come to that depends on the library and the message size.
 
 </Callout>
 

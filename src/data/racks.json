@@ -1,4 +1,17 @@
 {
+ "abSizes": [
+  1000.0,
+  4000.0,
+  16000.0,
+  64000.0,
+  256000.0,
+  1000000.0,
+  4000000.0,
+  16000000.0,
+  64000000.0,
+  256000000.0,
+  1000000000.0
+ ],
  "accessed": "2026-10-13",
  "busbarCases": [
   [
@@ -58,6 +71,38 @@
   "vr-tokens-mw": {
    "src": "vr-page",
    "text": "Vera Rubin NVL72 'delivers up to 10x more tokens per megawatt than NVIDIA GB200 NVL72' (Kimi-K2 Thinking, 32K/8K input/output)"
+  }
+ },
+ "collective": {
+  "d_70b": {
+   "ref": "Table 3: model dimension 8,192 for the 70B model",
+   "src": "llama3",
+   "st": "spec",
+   "v": 8192
+  },
+  "n": {
+   "ref": "VII-A: eight H200 SXM5 GPUs per node",
+   "src": "nvshmem-2026",
+   "st": "measured",
+   "v": 8
+  },
+  "nvls_big_bps": {
+   "ref": "VII-C: 'NCCL NVLS reaches 276 GB/s' intra-node (the paper does not say algorithm or bus bandwidth)",
+   "src": "nvshmem-2026",
+   "st": "measured",
+   "v": 276000000000.0
+  },
+  "nvls_small_s": {
+   "ref": "VII-C: NCCL NVLS all-reduce, 8 GPUs, '5.6-5.9 us' up to 64 KiB (the low end)",
+   "src": "nvshmem-2026",
+   "st": "measured",
+   "v": 5.6e-06
+  },
+  "ring_small_s": {
+   "ref": "VII-C: NCCL ring all-reduce, 8 GPUs, 'roughly 4.7-8.9 us' up to 64 KiB (the low end: the smallest messages)",
+   "src": "nvshmem-2026",
+   "st": "measured",
+   "v": 4.7e-06
   }
  },
  "cost": {
@@ -1169,6 +1214,12 @@
    "kind": "vendor product page",
    "title": "NVIDIA NVLink and NVLink Switch page, Specifications ('Preliminary specifications; may be subject to change')",
    "url": "https://www.nvidia.com/en-us/data-center/nvlink/"
+  },
+  "nvshmem-2026": {
+   "accessed": "2026-10-16",
+   "kind": "paper (measurements)",
+   "title": "Ma et al., 'Demystifying NVSHMEM: A System-Level Analysis on Symmetric Memory and Device-Initiated Operations in GPU Communication', arXiv:2606.05951, section VII-C and Fig. 5 (8x H200 SXM5 node, NVLink 4)",
+   "url": "https://arxiv.org/abs/2606.05951"
   },
   "patarasuk2009": {
    "accessed": "2026-10-13",

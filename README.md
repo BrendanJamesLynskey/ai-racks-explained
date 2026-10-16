@@ -75,9 +75,9 @@ versions sit beside them in [`docs/media/`](docs/media/).
 | ---------------------------------- | -------------------------------- | ------------------------------------ |
 | ![Cooling](docs/media/cooling.gif) | ![Disagg](docs/media/disagg.gif) | ![Training](docs/media/training.gif) |
 
-| Torus hops                     | Cost per token               |
-| ------------------------------ | ---------------------------- |
-| ![Torus](docs/media/torus.gif) | ![Cost](docs/media/cost.gif) |
+| Torus hops                     | Cost per token               | The latency term (brief 42)                  |
+| ------------------------------ | ---------------------------- | -------------------------------------------- |
+| ![Torus](docs/media/torus.gif) | ![Cost](docs/media/cost.gif) | ![Latency term](docs/media/latency-term.gif) |
 
 ## Screenshots
 
@@ -153,7 +153,7 @@ of H200, Blackwell and Rubin, or GB300 rack power), the model stores `null`
 and the site prints "not disclosed". Marketing claims are quoted in `CLAIMS`
 and never used as inputs.
 [`scripts/make_fixtures.py`](scripts/make_fixtures.py) writes the whole table,
-the numbers the chapters use and the validation band to
+the numbers the chapters use and the checks to
 [`results.md`](results.md); the site shows the same on
 [/specs](https://ai-racks-explained.vercel.app/specs).
 
@@ -181,18 +181,39 @@ checks out the simulator at the vendored commit and re-runs the script with
 `--check`. The simulator's own validation against published serving results
 is section 22 of its `results.md`.
 
-### Validation band
+### Spec cross-checks, rules and a measurement
 
-The model is checked against 27 published figures it does not take as
-inputs: rack NVLink and HBM totals from per-GPU figures (GB200, Vera Rubin,
-DGX B200), the NVL72 wiring (1,296 GPU links fill 1,296 switch ports), the
-NVLink switch tray's 57.6 Tb/s, the two-tier size of a 144-port fat tree
-("over 10,000 GPUs"), every leaf, spine and core count in the SuperPOD
-reference architecture's Table 3 (exact), and AMD's and AWS's system totals
-(Helios HBM and bandwidth, Trn2 and Trainium3 UltraServers) against their
-per-chip figures. The band is 0.9874 to 1.0368; the
-two gaps from 1 are rounding in the published figures
-([results.md](results.md#validation-band)).
+The model is compared with 28 published figures it does not take as inputs,
+and each row says what it tests ([results.md](results.md#checks-spec-cross-checks-rules-and-a-measurement)):
+
+- **Spec cross-checks** (13): the model's arithmetic on a vendor's per-part
+  figures against the same vendor's totals: rack NVLink and HBM totals from
+  per-GPU figures (GB200, Vera Rubin, DGX B200), the NVLink switch tray's
+  57.6 Tb/s, AMD's and AWS's system totals (Helios, Trn2 and Trainium3
+  UltraServers). They show the specs agree with each other; they do not test
+  performance.
+- **Rules** (14): the NVL72 wiring (1,296 GPU links fill 1,296 switch
+  ports), the two-tier size of a 144-port fat tree ("over 10,000 GPUs") and
+  every leaf, spine and core count in the SuperPOD reference architecture's
+  Table 3 (exact), derived from the rail-aligned rules.
+- **A measurement** (1): NCCL's NVLS all-reduce of large messages on an
+  eight-GPU NVLink 4 node, 276 GB/s measured
+  ([arXiv:2606.05951](https://arxiv.org/abs/2606.05951)), against the
+  model's in-switch bound of 449 GB/s: the software reaches about 61% of the
+  bound.
+
+The cross-checks and rules sit between 0.9874 and 1.0368; the two gaps from
+1 are rounding in the published figures.
+
+### The latency term (brief 42)
+
+Chapter 4's collectives now carry an alpha-beta latency term: ring
+2(n - 1)α + 2(n - 1)/n · S/B, in-switch α_s + S/B, with α calibrated on the
+same paper's small-message NCCL all-reduces (about 4.7 µs ring, 5.6 µs NVLS
+on eight GPUs). A Llama 3 70B decode all-reduce at batch 8 (128 KiB) on
+eight B200s is then about 95% latency, 19 times the bandwidth-only time.
+NVLink 5's latency is not published, so the B200 uses the NVLink 4 α (an
+assumption the chapter states).
 
 ### What is illustrative
 
@@ -226,7 +247,7 @@ two gaps from 1 are rounding in the published figures
   and status; the ladder, package, fit and fill; the pipeline against the
   flow-shop closed form; ring all-reduce for 2 to 8 GPUs; fat trees against
   Al-Fares et al. (k³/4 hosts, 5k²/4 switches); the SuperPOD table; the
-  validation band.
+  checks against published figures.
 - Exact parity: the TypeScript port
   ([`src/lib/racks/model.ts`](src/lib/racks/model.ts)) must reproduce every
   fixture value exactly, no tolerance (`tests/unit/model.test.ts`); CI fails
@@ -339,7 +360,7 @@ src/components/       Animation panel, widgets, tables, figures
 tests/python/         pytest
 tests/unit/           Vitest (fixtures in tests/fixtures/)
 tests/e2e/            Playwright + axe-core
-results.md            Every figure with its source and date, chapter numbers, validation band
+results.md            Every figure with its source and date, chapter numbers, checks
 ```
 
 ## References

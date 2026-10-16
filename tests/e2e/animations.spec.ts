@@ -10,6 +10,7 @@ const ANIMATIONS = [
   ["/learn/02-the-package", "package-widget"],
   ["/learn/03-trays-and-nodes", "path-widget"],
   ["/learn/04-scale-up-nvlink", "ring-widget"],
+  ["/learn/04-scale-up-nvlink", "ab-widget"],
   ["/learn/05-scale-out-network", "fabric-widget"],
   ["/learn/06-power", "power-widget"],
   ["/learn/07-cooling", "cooling-widget"],
@@ -57,7 +58,9 @@ for (const scheme of ["light", "dark"] as const) {
           await expect(fig).toBeVisible();
           await fig.scrollIntoViewIfNeeded();
           await ready(fig);
-          // it plays (it may already be playing: it starts when visible)
+          // it plays by itself once in view (wait for that, so the pause
+          // below cannot race the visibility observer)
+          await expect(fig).toHaveAttribute("data-playing", "true");
           await pause(fig);
           await fig
             .getByRole("button", { name: "Reset to the first step" })

@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 
 import fx from "../fixtures/rack_fixtures.json";
+import { abCaption } from "@/lib/racks/captions";
 
 import {
   GPU_ORDER,
@@ -61,6 +62,9 @@ import {
   type PathId,
   type SwitchId,
   type SystemId,
+  abSweep,
+  alphaOf,
+  decodeAllreduce,
 } from "@/lib/racks/model";
 
 describe("records", () => {
@@ -164,12 +168,12 @@ describe("chapter 5: scale-out", () => {
   });
 });
 
-describe("validation band", () => {
+describe("spec cross-checks, rules and the measured check", () => {
   it("computes the same checks", () => {
     expect(validation()).toEqual(fx.validation);
   });
-  it("stays within 2% below and 4% above every published figure", () => {
-    for (const v of validation()) {
+  it("the cross-checks and rules stay within 2% below and 4% above every published figure", () => {
+    for (const v of validation().filter((x) => x.kind !== "measured")) {
       expect(v.ratio, v.id).toBeGreaterThanOrEqual(0.98);
       expect(v.ratio, v.id).toBeLessThanOrEqual(1.04);
     }
@@ -238,5 +242,51 @@ describe("chapters 6-11 (brief 31B)", () => {
       expect(
         tcoSteps(c.capex, ci.years, ci.rack_w, ci.pue, c.kwh, ci.tok_s, c.util),
       ).toEqual(c.out);
+  });
+});
+
+describe("brief 42: the latency term and the measured check", () => {
+  it("calibrates the same alphas and sweeps the same sizes", () => {
+    expect({ ring: alphaOf("ring"), switch: alphaOf("switch") }).toEqual(
+      fx.alpha,
+    );
+    for (const c of fx.ab as { gpu: GpuId; n: number; out: unknown }[])
+      expect(abSweep(c.gpu, c.n)).toEqual(c.out);
+    for (const c of fx.decodeAllreduce as {
+      batch: number;
+      n: number;
+      gpu: GpuId;
+      out: unknown;
+    }[])
+      expect(decodeAllreduce(c.batch, c.n, c.gpu)).toEqual(c.out);
+  });
+
+  it("a decode all-reduce is latency-bound; a gigabyte is bandwidth-bound", () => {
+    const d = decodeAllreduce(8, 8);
+    expect(d.ring.latShare).toBeGreaterThan(0.9);
+    expect(d.ring.t / d.bwOnly).toBeGreaterThan(10);
+    const big = abSweep("b200", 8).at(-1)!;
+    expect(big.ring.latShare).toBeLessThan(0.01);
+  });
+
+  it("labels every check by what it tests, with one measurement", () => {
+    const v = validation();
+    expect(v.filter((x) => x.kind === "measured").map((x) => x.id)).toEqual([
+      "nccl-nvls-h200",
+    ]);
+    const m = v.find((x) => x.id === "nccl-nvls-h200")!;
+    // NCCL reaches about 60% of the in-switch bound
+    expect(1 / m.ratio).toBeGreaterThan(0.55);
+    expect(1 / m.ratio).toBeLessThan(0.7);
+  });
+});
+
+describe("brief 42: the latency term's captions", () => {
+  it("call a small all-reduce latency-bound and a large one bandwidth-bound", () => {
+    const sw = abSweep("b200", 8);
+    expect(abCaption(sw[0]!, 8, "B200")).toContain("latency-bound");
+    expect(abCaption(sw[sw.length - 1]!, 8, "B200")).toContain(
+      "bandwidth-bound",
+    );
   });
 });

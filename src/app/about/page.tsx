@@ -1,6 +1,6 @@
 /**
  * /about: what the site is, what the model computes and what it leaves
- * out, how hardware figures are sourced, the validation band, and how the
+ * out, how hardware figures are sourced, the checks against published figures, and how the
  * animations are driven and checked. Server Component, static.
  */
 import Link from "next/link";
@@ -25,14 +25,14 @@ import { withShare } from "@/lib/share";
 export const metadata = withShare("/about", {
   title: "About",
   description:
-    "What AI Racks Explained's model computes, how every hardware figure is sourced and dated, the model's validation band against published figures, and how the animations are checked.",
+    "What AI Racks Explained's model computes, how every hardware figure is sourced and dated, its spec cross-checks, structural rules and a measured check against published figures, and how the animations are checked.",
 });
 
 const A =
   "focus-ring rounded text-accent underline underline-offset-2 dark:text-indigo-300";
 
 export default function AboutPage(): JSX.Element {
-  const rows = validation();
+  const rows = validation().filter((r) => r.kind !== "measured");
   const lo = Math.min(...rows.map((r) => r.ratio));
   const hi = Math.max(...rows.map((r) => r.ratio));
   return (
@@ -163,23 +163,42 @@ export default function AboutPage(): JSX.Element {
           quoted and attributed, never used as model inputs.
         </p>
 
-        <h2 id="validation">Validation band</h2>
+        <h2 id="validation">Spec cross-checks, rules and a measurement</h2>
         <p>
-          The model is checked against published figures that it does not take
-          as inputs: rack-level NVLink and HBM totals from per-GPU figures, the
-          NVL72 wiring (links equal switch ports), a switch tray&apos;s
-          bandwidth, the size of a two-tier fat tree, the leaf, spine and core
-          switch counts of the published SuperPOD design, and the totals AMD and
-          AWS state for their rack- and server-scale systems against their
-          per-chip figures. Across {rows.length} checks the model is between{" "}
-          {lo.toFixed(4)} and {hi.toFixed(4)} of the published value. The
-          largest gaps are rounding in the published figures: Vera Rubin
+          The model is compared with published figures that it does not take as
+          inputs, and each comparison is labelled by what it actually tests.
+          Most are <strong>spec cross-checks</strong> (
+          {formatValue(lookup("kinds.consistency"), "int")} of them): the
+          model&apos;s arithmetic on a vendor&apos;s per-GPU or per-chip figures
+          against the same vendor&apos;s rack or system total (rack NVLink and
+          HBM totals, a switch tray&apos;s bandwidth, AMD&apos;s and AWS&apos;s
+          system totals). They show that the specifications agree with each
+          other and that the model reads them correctly; they do not show that
+          it predicts performance. <strong>Rules</strong> (
+          {formatValue(lookup("kinds.rule"), "int")}) test a structural rule the
+          model applies: the NVL72 wiring (links equal switch ports), the size
+          of a two-tier fat tree, and the leaf, spine and core switch counts of
+          the published SuperPOD design, which the model derives from the
+          rail-aligned rules rather than reading. Across these the model is
+          between {lo.toFixed(4)} and {hi.toFixed(4)} of the published value.
+          The largest gaps are rounding in the published figures: Vera Rubin
           NVL72&apos;s rack HBM bandwidth (
           {formatValue(lookup("val.vr-hbm-bw.published"), "rate")}) is{" "}
           {pct(1 / (lookup("val.vr-hbm-bw.ratio") as number) - 1, 1)} more than
           72 times its per-GPU figure, and &ldquo;over 10,000 GPUs&rdquo; for a
           two-tier fabric of 144-port switches is the model&apos;s{" "}
           {formatValue(lookup("val.q3450-two-tier.model"), "int")} rounded down.
+        </p>
+        <p>
+          One row is a <strong>measurement</strong>: NCCL&apos;s in-switch
+          (NVLS) all-reduce of large messages on an eight-GPU NVLink 4 node,{" "}
+          {formatValue(lookup("val.nccl-nvls-h200.published"), "rate")} in a
+          2026 study, against the model&apos;s in-switch bound of{" "}
+          {formatValue(lookup("val.nccl-nvls-h200.model"), "rate")}: the bound
+          is {formatValue(lookup("val.nccl-nvls-h200.ratio"), "num")} times what
+          the software reaches. Chapter 4 also takes the latency term of its
+          collectives from the same measurements. The rack simulator of chapter
+          8 has its own validation against published serving results (above).
         </p>
         <ValidationTable />
 

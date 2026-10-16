@@ -284,7 +284,10 @@ test("the specs page marks every status and dates every source", async ({
 
 test("the about page shows the validation band", async ({ page }) => {
   await page.goto("/about#validation");
-  await expect(page.locator("[data-check]")).toHaveCount(27);
+  await expect(page.locator("[data-check]")).toHaveCount(28);
+  await expect(
+    page.locator("[data-check='nccl-nvls-h200'] [data-kind]"),
+  ).toHaveText("measured");
   await expect(
     page.locator("[data-check='superpod-16su-core'] td").last(),
   ).toHaveText("1.0000");
@@ -337,4 +340,16 @@ test("the about page ends with the author credit", async ({ page }) => {
     "href",
     "https://github.com/BrendanJamesLynskey",
   );
+});
+
+test("the landing page links the author's hardware work (brief 42)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const strip = page.locator("[data-hardware-work]");
+  await expect(strip).toBeVisible();
+  await expect(strip.locator("a")).toHaveCount(10);
+  await expect(
+    strip.locator("a[href$='/LLM_Transformer_Decoder_RTL']"),
+  ).toHaveCount(1);
 });

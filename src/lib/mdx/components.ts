@@ -17,6 +17,7 @@ import {
   PathWidget,
   PowerWidget,
   RingWidget,
+  AlphaBetaWidget,
   TorusWidget,
   TrainingWidget,
 } from "@/components/interactive/lazy";
@@ -54,6 +55,7 @@ export const mdxComponents: NonNullable<MDXRemoteProps["components"]> = {
   PackageWidget,
   PathWidget,
   RingWidget,
+  AlphaBetaWidget,
   FabricWidget,
   PowerWidget,
   CoolingWidget,

@@ -58,6 +58,12 @@ const CLIPS: Clip[] = [
     fps: 2,
   },
   {
+    name: "latency-term",
+    path: "/learn/04-scale-up-nvlink",
+    widget: "ab-widget",
+    fps: 2,
+  },
+  {
     name: "fabric",
     path: "/learn/05-scale-out-network",
     widget: "fabric-widget",

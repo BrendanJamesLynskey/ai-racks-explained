@@ -43,6 +43,10 @@ import {
   system,
   tpCompare,
   validation,
+  abSweep,
+  alphaOf,
+  cval,
+  decodeAllreduce,
   alltoallTime,
   perDir,
   BUSBAR_CASES,
@@ -239,6 +243,31 @@ function build(): Record<string, unknown> {
   const val: Record<string, unknown> = {};
   for (const v of validation()) val[v.id] = v;
   t.val = val;
+  // brief 42: the latency term
+  const sweep = abSweep("b200", 8);
+  const at: Record<string, unknown> = {};
+  for (const x of sweep) at[`s${x.size}`] = x;
+  t.ab = {
+    alphaRing: alphaOf("ring"),
+    alphaSwitch: alphaOf("switch"),
+    ringSmall: cval("ring_small_s"),
+    nvlsSmall: cval("nvls_small_s"),
+    nvlsBig: cval("nvls_big_bps"),
+    b200n8: at,
+    dec8: decodeAllreduce(8, 8),
+    dec1: decodeAllreduce(1, 8),
+    dec256: decodeAllreduce(256, 8),
+    // how much the bandwidth-only time underestimates the batch-8 decode all-reduce
+    dec8under: decodeAllreduce(8, 8).ring.t / decodeAllreduce(8, 8).bwOnly,
+    d70: cval("d_70b"),
+  };
+  const kinds: Record<string, number> = {
+    consistency: 0,
+    rule: 0,
+    measured: 0,
+  };
+  for (const v of validation()) kinds[v.kind] = (kinds[v.kind] ?? 0) + 1;
+  t.kinds = kinds;
   // chapter 6: power
   t.pow = powerChain();
   t.fac = { power: facility("power"), cooling: facility("cooling") };

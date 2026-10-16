@@ -67,3 +67,7 @@ export const CostWidget = dynamic(() => import("./CostWidget"), {
   ssr: false,
   loading: loading("animation"),
 });
+export const AlphaBetaWidget = dynamic(() => import("./AlphaBetaWidget"), {
+  ssr: false,
+  loading: loading("animation"),
+});

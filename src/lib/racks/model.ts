@@ -681,6 +681,97 @@ export function allreduceTime(
   return size / bw;
 }
 
+// ---------------------------------------------------------------------------
+// Chapter 4: the latency term (alpha-beta), brief 42; port of the Python
+// ---------------------------------------------------------------------------
+
+type CField = { v: number; st: string; src: string; ref: string };
+export const COLLECTIVE = data.collective as unknown as Record<string, CField>;
+export const AB_SIZES = data.abSizes as number[];
+
+export function cval(key: string): number {
+  return COLLECTIVE[key]!.v;
+}
+
+export function alphaOf(algo: Algo): number {
+  const n = cval("n");
+  if (algo === "ring") return cval("ring_small_s") / (2 * (n - 1));
+  return cval("nvls_small_s");
+}
+
+export type AllreduceAb = {
+  t: number;
+  lat: number;
+  bw: number;
+  latShare: number;
+  crossover: number;
+};
+
+export function allreduceAb(
+  n: number,
+  size: number,
+  bw: number,
+  algo: Algo,
+  alpha: number,
+): AllreduceAb {
+  let lat: number;
+  let bwt: number;
+  let cross: number;
+  if (algo === "ring") {
+    lat = 2 * (n - 1) * alpha;
+    bwt = (((2 * (n - 1)) / n) * size) / bw;
+    cross = n * alpha * bw;
+  } else {
+    lat = alpha;
+    bwt = size / bw;
+    cross = alpha * bw;
+  }
+  return {
+    t: lat + bwt,
+    lat,
+    bw: bwt,
+    latShare: lat / (lat + bwt),
+    crossover: cross,
+  };
+}
+
+export type AbStep = {
+  i: number;
+  size: number;
+  ring: AllreduceAb;
+  switch: AllreduceAb;
+  ringBwOnly: number;
+  switchBwOnly: number;
+};
+
+export function abSweep(gid: GpuId, n: number): AbStep[] {
+  const bw = perDir(gpu(gid).nvlink_bidir);
+  return AB_SIZES.map((size, i) => ({
+    i,
+    size,
+    ring: allreduceAb(n, size, bw, "ring", alphaOf("ring")),
+    switch: allreduceAb(n, size, bw, "switch", alphaOf("switch")),
+    ringBwOnly: allreduceTime(n, size, bw, "ring"),
+    switchBwOnly: allreduceTime(n, size, bw, "switch"),
+  }));
+}
+
+export function decodeAllreduce(
+  batch: number,
+  n: number,
+  gid: GpuId = "b200",
+  bytesPer = 2.0,
+): { size: number; ring: AllreduceAb; switch: AllreduceAb; bwOnly: number } {
+  const size = batch * cval("d_70b") * bytesPer;
+  const bw = perDir(gpu(gid).nvlink_bidir);
+  return {
+    size,
+    ring: allreduceAb(n, size, bw, "ring", alphaOf("ring")),
+    switch: allreduceAb(n, size, bw, "switch", alphaOf("switch")),
+    bwOnly: allreduceTime(n, size, bw, "ring"),
+  };
+}
+
 export type TpCompare = {
   size: number;
   n: number;
@@ -926,6 +1017,7 @@ export function railAligned(sus: number): RailAligned {
 // Validation band
 // ---------------------------------------------------------------------------
 
+export type CheckKind = "consistency" | "rule" | "measured";
 export type Check = {
   id: string;
   what: string;
@@ -933,6 +1025,7 @@ export type Check = {
   published: number;
   src: string;
   note?: string;
+  kind: CheckKind;
   ratio: number;
 };
 
@@ -1656,7 +1749,7 @@ export function validation(): Check[] {
   const s = system("gb200-nvl72");
   const d = nvlinkDomain("gb200-nvl72");
   const vr = system("vr-nvl72");
-  const rows: Omit<Check, "ratio">[] = [
+  const rows: Omit<Check, "ratio" | "kind">[] = [
     {
       id: "nvl72-nvlink-total",
       what: "GB200 NVL72 total NVLink bandwidth (B/s)",
@@ -1785,5 +1878,27 @@ export function validation(): Check[] {
         src: "superpod-network",
       });
   }
-  return rows.map((r) => ({ ...r, ratio: r.model / r.published }));
+  // brief 42: one check against a measurement (see the Python)
+  const bw = perDir(gpu("h200").nvlink_bidir);
+  const big = allreduceAb(cval("n"), 1e9, bw, "switch", alphaOf("switch"));
+  rows.push({
+    id: "nccl-nvls-h200",
+    what: "NCCL NVLS all-reduce, 8 GPUs on NVLink 4 (H200 node), large messages (B/s): the in-switch bound at 1 GB vs measured",
+    model: 1e9 / big.t,
+    published: cval("nvls_big_bps"),
+    src: "nvshmem-2026",
+    note: "measured; the paper does not say whether 276 GB/s is algorithm or bus bandwidth",
+  });
+  const kinds: Record<string, CheckKind> = {
+    "nvl72-links-ports": "rule",
+    "q3450-two-tier": "rule",
+    "nccl-nvls-h200": "measured",
+  };
+  return rows.map((r) => ({
+    ...r,
+    kind: r.id.startsWith("superpod-")
+      ? "rule"
+      : (kinds[r.id] ?? "consistency"),
+    ratio: r.model / r.published,
+  }));
 }

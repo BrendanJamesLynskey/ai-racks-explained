@@ -95,8 +95,9 @@ async function main(): Promise<void> {
     ]),
     checkPage(base, "/about", [
       ...CREDIT,
-      "Validation band",
+      "Spec cross-checks, rules and a measurement",
       'data-check="superpod-16su-core"',
+      'data-check="nccl-nvls-h200"',
     ]),
     checkPage(
       base,
