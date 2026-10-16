@@ -1,5 +1,7 @@
+import type { Route } from "next";
 import Link from "next/link";
 
+import { CheckedStrip, StartButton } from "@/components/ui/Landing";
 import { LadderBars } from "@/components/viz/LadderBars";
 import { SECTIONS } from "@/lib/mdx/sections";
 import { formatValue, lookup, type Fmt } from "@/lib/racks/values";
@@ -28,32 +30,21 @@ export default function HomePage(): JSX.Element {
       <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
         The machines underneath, chip to data centre.
       </h1>
-      <div className="mt-8 grid items-center gap-8 md:grid-cols-[1fr_minmax(0,22rem)]">
+      <div className="mt-6 grid items-start gap-8 md:grid-cols-[1fr_minmax(0,22rem)]">
         <div>
           <p className="max-w-2xl text-lg text-neutral-600 dark:text-neutral-300">
-            A large model is trained and served by thousands of GPUs, and the
-            way they are packaged, wired, powered and cooled decides what is
-            fast. Inside one package a GPU reads its HBM at{" "}
-            {v("ladder.package.bw", "rate")}. Inside an NVLink rack it reaches
-            any of {v("ladder.rack.gpus", "int")} GPUs at{" "}
-            {v("ladder.rack.bw", "rate")} per direction. One rung further out,
-            over the network, it has {v("ladder.su.bw", "rate")}: a drop of{" "}
-            {v("ladder.su.drop", "num")} times. Most of the design of a training
-            or inference cluster is about which traffic crosses which boundary.
+            An interactive guide to the machines underneath AI: packages, NVLink
+            racks, networks, power and cooling, with every hardware figure
+            sourced and dated.
           </p>
-          <p className="mt-4 max-w-2xl text-neutral-600 dark:text-neutral-300">
-            Each chapter is built around an animation whose every frame comes
-            from a small model tested against a Python reference. Every hardware
-            figure carries its source and the date it was read, products whose
-            specifications are preliminary or planned are marked, and the model
-            is checked against published figures (
-            <Link href="/about#validation" className={LINK}>
-              its validation band
-            </Link>
-            ).
-          </p>
+          <div className="mt-6">
+            <StartButton href={`/learn/${SECTIONS[0]!.slug}` as Route} />
+          </div>
         </div>
-        <figure className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <figure
+          data-hero-figure
+          className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800"
+        >
           <LadderBars />
           <figcaption className="mt-2 text-xs text-neutral-600 dark:text-neutral-400">
             Bandwidth one GPU has at each rung of a GB200 NVL72 cluster, log
@@ -61,6 +52,38 @@ export default function HomePage(): JSX.Element {
           </figcaption>
         </figure>
       </div>
+      <CheckedStrip href="/about#validation">
+        Every hardware figure carries its source and the date it was read, and
+        the model is checked against published rack, switch and fabric totals
+        that it does not take as inputs.
+      </CheckedStrip>
+      <section aria-labelledby="learn-heading" className="mt-12">
+        <h2 id="learn-heading" className="text-xl font-semibold tracking-tight">
+          What you&apos;ll learn
+        </h2>
+        <p className="mt-4 max-w-2xl text-neutral-600 dark:text-neutral-300">
+          A large model is trained and served by thousands of GPUs, and the way
+          they are packaged, wired, powered and cooled decides what is fast.
+          Inside one package a GPU reads its HBM at{" "}
+          {v("ladder.package.bw", "rate")}. Inside an NVLink rack it reaches any
+          of {v("ladder.rack.gpus", "int")} GPUs at{" "}
+          {v("ladder.rack.bw", "rate")} per direction. One rung further out,
+          over the network, it has {v("ladder.su.bw", "rate")}: a drop of{" "}
+          {v("ladder.su.drop", "num")} times. Most of the design of a training
+          or inference cluster is about which traffic crosses which boundary.
+        </p>
+        <p className="mt-4 max-w-2xl text-neutral-600 dark:text-neutral-300">
+          Each chapter is built around an animation whose every frame comes from
+          a small model tested against a Python reference. Every hardware figure
+          carries its source and the date it was read, products whose
+          specifications are preliminary or planned are marked, and the model is
+          checked against published figures (
+          <Link href="/about#validation" className={LINK}>
+            its validation band
+          </Link>
+          ).
+        </p>
+      </section>
       <nav
         aria-label="Chapters"
         className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"

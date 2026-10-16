@@ -10,10 +10,11 @@ import type { ReactNode } from "react";
 
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SITE_URL } from "@/lib/site";
+import { withShare } from "@/lib/share";
 
 import "./globals.css";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withShare("/", {
   metadataBase: new URL(SITE_URL),
   title: {
     default: "AI Racks Explained",
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   },
   description:
     "The machines that train and serve large models, chip to data centre: packages, trays, NVLink racks, scale-out networks, power, cooling, disaggregated inference, training clusters, other designs and cost, each animated by a tested model with every hardware figure sourced.",
-};
+});
 
 export default function RootLayout({
   children,
