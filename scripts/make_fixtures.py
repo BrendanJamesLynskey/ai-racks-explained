@@ -88,6 +88,8 @@ def site_data() -> dict:
         "loopParcels": r.LOOP_PARCELS,
         "segments": list(r.SEGMENTS),
         "hoursPerYear": r.HOURS_PER_YEAR,
+        "collective": r.COLLECTIVE,
+        "abSizes": list(r.AB_SIZES),
     }
 
 
@@ -143,6 +145,14 @@ def fixtures() -> dict:
     out["treeSteps"] = [{"n": n, "k": k, "oversub": o, "out": r.tree_steps(n, k, o)} for n, k, o in TREE_STEPS]
     out["railAligned"] = [r.rail_aligned(s) for s in range(1, 17)]
     out["validation"] = r.validation()
+    out["alpha"] = {a: r.alpha_of(a) for a in ("ring", "switch")}
+    out["ab"] = [{"gpu": g, "n": n, "out": r.ab_sweep(g, n)} for g in ("h200", "b200") for n in (4, 8, 72)]
+    out["decodeAllreduce"] = [
+        {"batch": b, "n": n, "gpu": g, "out": r.decode_allreduce(b, n, g)}
+        for b in (1, 8, 64, 256)
+        for n in (4, 8)
+        for g in ("h200", "b200")
+    ]
     # chapter 6: power
     out["facility"] = {f: r.facility(f) for f in r.FACILITY}
     out["powerChain"] = r.power_chain()
@@ -529,23 +539,44 @@ def results_md() -> str:
                 x = r.tco(k, ci["years"], ci["rack_w"], ci["pue"], e, ci["tok_s"], u)
                 L.append(f"| {_num(k)} | {e:g} | {u:g} | {x['usd_per_mtok']:.4g} | {x['capex_share']:.4g} | {x['tok_s_per_mw']:.6g} |")
     L.append("")
-    L.append("## Validation band")
+    L.append("## Checks: spec cross-checks, rules and a measurement")
     L.append("")
     L.append(
-        "The model's structural and bandwidth figures against the published ones. Every row is computed from the "
-        "model's inputs; none of the published values is an input to the figure it is compared with."
+        "The model's figures against published ones, by what each row tests (brief 42 renamed this section, which was "
+        "the 'validation band'). **consistency**: the model's arithmetic on a vendor's per-part figures against the same "
+        "vendor's total (it shows the specs agree, not that the model predicts performance). **rule**: a structural rule "
+        "the model applies (wiring, fat-tree sizing, the SuperPOD's switch counts). **measured**: a published measurement. "
+        "No published value is an input to the figure it is compared with."
     )
     L.append("")
-    L.append("| check | model | published | model / published | source |")
-    L.append("| --- | --- | --- | --- | --- |")
+    L.append("| check | kind | model | published | model / published | source |")
+    L.append("| --- | --- | --- | --- | --- | --- |")
     for v in r.validation():
         note = f" ({v['note']})" if v.get("note") else ""
-        L.append(f"| {v['what']}{note} | {_num(v['model'])} | {_num(v['published'])} | {v['ratio']:.4f} | {_src(v['src'])} |")
+        L.append(f"| {v['what']}{note} | {v['kind']} | {_num(v['model'])} | {_num(v['published'])} | {v['ratio']:.4f} | {_src(v['src'])} |")
     rows = r.validation()
-    lo = min(x["ratio"] for x in rows)
-    hi = max(x["ratio"] for x in rows)
     L.append("")
-    L.append(f"Band: {lo:.4f} to {hi:.4f} across {len(rows)} checks.")
+    for kind in ("consistency", "rule", "measured"):
+        ks = [x["ratio"] for x in rows if x["kind"] == kind]
+        L.append(f"- {kind}: {len(ks)} check(s), {min(ks):.4f} to {max(ks):.4f}")
+    L.append("")
+    L.append("## The latency term of the collectives (brief 42)")
+    L.append("")
+    L.append(
+        f"alpha, calibrated on the smallest measured NCCL all-reduces (8 GPUs, NVLink 4, {_src('nvshmem-2026')}): ring "
+        f"{r.alpha_of('ring'):.4g} s per step (2(n-1) steps), in-switch (NVLS) {r.alpha_of('switch'):.4g} s per all-reduce."
+    )
+    L.append("")
+    L.append("| GPUs | message (B) | ring, alpha-beta (s) | ring, bandwidth only (s) | latency share | in-switch, alpha-beta (s) |")
+    L.append("| --- | --- | --- | --- | --- | --- |")
+    for x in r.ab_sweep("b200", 8):
+        L.append(f"| 8 x B200 | {_num(x['size'])} | {x['ring']['t']:.4g} | {x['ringBwOnly']:.4g} | {x['ring']['latShare']:.4g} | {x['switch']['t']:.4g} |")
+    d = r.decode_allreduce(8, 8)
+    L.append("")
+    L.append(
+        f"A Llama 3 70B decode all-reduce at batch 8 ({_num(d['size'])} B) on 8 B200s: {d['ring']['t']:.4g} s with alpha, "
+        f"{d['bwOnly']:.4g} s on bandwidth alone ({d['ring']['t'] / d['bwOnly']:.4g} times); ring crossover at {_num(d['ring']['crossover'])} B."
+    )
     L.append("")
     return "\n".join(L)
 

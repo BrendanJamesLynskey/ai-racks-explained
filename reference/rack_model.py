@@ -44,11 +44,19 @@ ACCESSED = "2026-10-13"
 # ---------------------------------------------------------------------------
 
 
-def _s(title: str, url: str, kind: str) -> dict[str, str]:
-    return {"title": title, "url": url, "kind": kind, "accessed": ACCESSED}
+def _s(title: str, url: str, kind: str, accessed: str = ACCESSED) -> dict[str, str]:
+    return {"title": title, "url": url, "kind": kind, "accessed": accessed}
+
+
+ACCESSED_42 = "2026-10-16"  # sources added by brief 42
 
 
 SOURCES: dict[str, dict[str, str]] = {
+    "nvshmem-2026": _s(
+        "Ma et al., 'Demystifying NVSHMEM: A System-Level Analysis on Symmetric Memory and Device-Initiated Operations in GPU Communication', arXiv:2606.05951, section VII-C and Fig. 5 (8x H200 SXM5 node, NVLink 4)",
+        "https://arxiv.org/abs/2606.05951",
+        "paper (measurements)", ACCESSED_42,
+    ),
     "h100-page": _s(
         "NVIDIA H100 product page, Product Specifications (H100 SXM column)",
         "https://www.nvidia.com/en-us/data-center/h100/",
@@ -1098,6 +1106,80 @@ def allreduce_time(n: int, size: float, bw: float, algo: str) -> float:
     return size / bw
 
 
+# ---------------------------------------------------------------------------
+# Chapter 4: the latency term (alpha-beta), brief 42
+# ---------------------------------------------------------------------------
+
+# Measured on an eight-GPU NVLink 4 node (H200 SXM5): NCCL all-reduce takes
+# "roughly 4.7-8.9 us for NCCL ring and 5.6-5.9 us for NCCL NVLS" for
+# messages up to 64 KiB, and NVLS reaches 276 GB/s for large messages.
+COLLECTIVE: dict[str, dict[str, Any]] = {
+    "ring_small_s": _f(4.7e-6, "measured", "nvshmem-2026", "VII-C: NCCL ring all-reduce, 8 GPUs, 'roughly 4.7-8.9 us' up to 64 KiB (the low end: the smallest messages)"),
+    "nvls_small_s": _f(5.6e-6, "measured", "nvshmem-2026", "VII-C: NCCL NVLS all-reduce, 8 GPUs, '5.6-5.9 us' up to 64 KiB (the low end)"),
+    "nvls_big_bps": _f(276e9, "measured", "nvshmem-2026", "VII-C: 'NCCL NVLS reaches 276 GB/s' intra-node (the paper does not say algorithm or bus bandwidth)"),
+    "n": _f(8, "measured", "nvshmem-2026", "VII-A: eight H200 SXM5 GPUs per node"),
+    "d_70b": _f(8192, "spec", "llama3", "Table 3: model dimension 8,192 for the 70B model"),
+}
+
+
+def cval(key: str) -> Any:
+    return COLLECTIVE[key]["v"]
+
+
+def alpha_of(algo: str) -> float:
+    """
+    The latency term, calibrated on the measured small-message all-reduce:
+    ring = 2(n - 1) steps, each paying alpha; switch (NVLS, in-network
+    reduction) = one fixed latency per all-reduce.
+    """
+    n = cval("n")
+    if algo == "ring":
+        return cval("ring_small_s") / (2 * (n - 1))
+    return cval("nvls_small_s")
+
+
+def allreduce_ab(n: int, size: float, bw: float, algo: str, alpha: float) -> dict[str, Any]:
+    """
+    The alpha-beta all-reduce: ring 2(n - 1) alpha + 2(n - 1)/n size/bw;
+    switch alpha + size/bw. Also the size at which the two terms are equal.
+    """
+    if algo == "ring":
+        lat = 2 * (n - 1) * alpha
+        bwt = 2 * (n - 1) / n * size / bw
+        cross = n * alpha * bw
+    else:
+        lat = alpha
+        bwt = size / bw
+        cross = alpha * bw
+    return {"t": lat + bwt, "lat": lat, "bw": bwt, "latShare": lat / (lat + bwt), "crossover": cross}
+
+
+AB_SIZES = (1e3, 4e3, 16e3, 64e3, 256e3, 1e6, 4e6, 16e6, 64e6, 256e6, 1e9)
+
+
+def ab_sweep(gid: str, n: int) -> list[dict[str, Any]]:
+    """Chapter 4's sweep: all-reduce time against message size on one NVLink domain."""
+    bw = per_dir(gpu(gid)["nvlink_bidir"])
+    out = []
+    for i, size in enumerate(AB_SIZES):
+        ring = allreduce_ab(n, size, bw, "ring", alpha_of("ring"))
+        sw = allreduce_ab(n, size, bw, "switch", alpha_of("switch"))
+        out.append({"i": i, "size": size, "ring": ring, "switch": sw,
+                    "ringBwOnly": allreduce_time(n, size, bw, "ring"), "switchBwOnly": allreduce_time(n, size, bw, "switch")})
+    return out
+
+
+def decode_allreduce(batch: int, n: int, gid: str = "b200", bytes_per: float = 2.0) -> dict[str, Any]:
+    """
+    One tensor-parallel decode all-reduce of Llama 3 70B: batch x d values of
+    16 bits (after attention or the MLP), on n GPUs of one NVLink domain.
+    """
+    size = batch * cval("d_70b") * bytes_per
+    bw = per_dir(gpu(gid)["nvlink_bidir"])
+    return {"size": size, "ring": allreduce_ab(n, size, bw, "ring", alpha_of("ring")),
+            "switch": allreduce_ab(n, size, bw, "switch", alpha_of("switch")), "bwOnly": allreduce_time(n, size, bw, "ring")}
+
+
 def tp_compare(sid: str, size: float, n: int) -> dict[str, Any]:
     """The same all-reduce over NVLink and over the GPU's network port."""
     s = system(sid)
@@ -1753,6 +1835,19 @@ def validation() -> list[dict[str, Any]]:
             mk = {"leaf": "leaves", "spine": "spines", "core": "cores"}[key]
             rows.append({"id": f"superpod-{row['sus']}su-{key}", "what": f"SuperPOD {row['gpus']} GPUs: {key} switches",
                          "model": m[mk], "published": row[key], "src": "superpod-network"})
+    # brief 42: one check against a measurement, not a spec: NCCL's NVLS
+    # all-reduce of large messages on an eight-GPU NVLink 4 node against the
+    # alpha-beta in-switch bound's algorithm bandwidth at 1 GB
+    g = "h200"
+    bw = per_dir(gpu(g)["nvlink_bidir"])
+    big = allreduce_ab(cval("n"), 1e9, bw, "switch", alpha_of("switch"))
+    rows.append({"id": "nccl-nvls-h200", "what": "NCCL NVLS all-reduce, 8 GPUs on NVLink 4 (H200 node), large messages (B/s): the in-switch bound at 1 GB vs measured",
+                 "model": 1e9 / big["t"], "published": cval("nvls_big_bps"), "src": "nvshmem-2026",
+                 "note": "measured; the paper does not say whether 276 GB/s is algorithm or bus bandwidth"})
+    # what each row checks: arithmetic between a vendor's own figures, a
+    # structural rule the model applies, or a measurement
+    kinds = {"nvl72-links-ports": "rule", "q3450-two-tier": "rule", "nccl-nvls-h200": "measured"}
     for r in rows:
+        r["kind"] = "rule" if r["id"].startswith("superpod-") else kinds.get(r["id"], "consistency")
         r["ratio"] = r["model"] / r["published"]
     return rows

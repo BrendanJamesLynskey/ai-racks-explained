@@ -284,7 +284,10 @@ test("the specs page marks every status and dates every source", async ({
 
 test("the about page shows the validation band", async ({ page }) => {
   await page.goto("/about#validation");
-  await expect(page.locator("[data-check]")).toHaveCount(27);
+  await expect(page.locator("[data-check]")).toHaveCount(28);
+  await expect(
+    page.locator("[data-check='nccl-nvls-h200'] [data-kind]"),
+  ).toHaveText("measured");
   await expect(
     page.locator("[data-check='superpod-16su-core'] td").last(),
   ).toHaveText("1.0000");

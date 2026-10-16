@@ -31,7 +31,8 @@ def test_every_field_has_a_known_source_and_status():
 
 def test_every_source_has_an_access_date_and_https_url():
     for s in r.SOURCES.values():
-        assert s["accessed"] == r.ACCESSED == "2026-10-13"
+        assert r.ACCESSED == "2026-10-13" and r.ACCESSED_42 == "2026-10-16"
+        assert s["accessed"] in (r.ACCESSED, r.ACCESSED_42)
         assert s["url"].startswith("https://")
 
 
@@ -169,11 +170,14 @@ def test_rail_aligned_reproduces_superpod_table3():
 
 def test_validation_band():
     rows = r.validation()
-    assert len(rows) == 9 + 6 + 12
+    assert len(rows) == 9 + 6 + 12 + 1
+    assert {x["kind"] for x in rows} == {"consistency", "rule", "measured"}
+    checks = [x for x in rows if x["kind"] != "measured"]
     for row in rows:
-        assert 0.98 <= row["ratio"] <= 1.04, row["id"]
         assert row["src"] in r.SOURCES
-    worst = min(rows, key=lambda x: x["ratio"])
+    for row in checks:
+        assert 0.98 <= row["ratio"] <= 1.04, row["id"]
+    worst = min(checks, key=lambda x: x["ratio"])
     assert worst["id"] == "vr-hbm-bw" and math.isclose(worst["ratio"], 0.9874285714285714)
 
 
@@ -270,3 +274,28 @@ def test_tco_adds_up():
     assert x["usd_per_mtok"] == pytest.approx((x["capex_yr"] + x["energy_usd_yr"]) / x["tokens_yr"] * 1e6)
     steps = r.tco_steps(3.5e6, 4, 120e3, 1.2, 0.1, 50000, 0.7)
     assert steps[-1]["capex"] == pytest.approx(3.5e6) and steps[-1]["usd_per_mtok"] == pytest.approx(x["usd_per_mtok"])
+
+
+
+def test_alpha_beta():
+    n = r.cval("n")
+    # calibrated so that the smallest measured all-reduces are reproduced
+    assert 2 * (n - 1) * r.alpha_of("ring") == pytest.approx(r.cval("ring_small_s"), rel=1e-12)
+    assert r.alpha_of("switch") == r.cval("nvls_small_s")
+    for algo in ("ring", "switch"):
+        a = r.alpha_of(algo)
+        x = r.allreduce_ab(8, 1e6, 450e9, algo, a)
+        assert x["t"] == pytest.approx(x["lat"] + x["bw"], rel=1e-15)
+        # at the crossover the two terms are equal
+        c = r.allreduce_ab(8, x["crossover"], 450e9, algo, a)
+        assert c["lat"] == pytest.approx(c["bw"], rel=1e-12)
+        assert x["bw"] == pytest.approx(r.allreduce_time(8, 1e6, 450e9, algo), rel=1e-15)
+    d = r.decode_allreduce(8, 8)
+    assert d["size"] == 8 * 8192 * 2 and d["ring"]["latShare"] > 0.9
+
+
+def test_measured_check():
+    m = next(x for x in r.validation() if x["id"] == "nccl-nvls-h200")
+    assert m["kind"] == "measured" and m["published"] == 276e9
+    # the bound is optimistic: NCCL's NVLS reaches about 60% of it
+    assert 1.5 < m["ratio"] < 1.8

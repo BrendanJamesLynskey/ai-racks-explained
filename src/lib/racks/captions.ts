@@ -19,6 +19,7 @@ import {
 
 import type { Counts } from "./disagg";
 import type {
+  AbStep,
   CoolingLoop,
   FatTree,
   Layout,
@@ -250,4 +251,15 @@ export function tcoCaption(st: TcoStep, n: number): string {
     `Quarter ${st.q} of ${n - 1}: ${fmtUsd(st.capex)} written off, ${fmtUsd(st.energy)} of electricity, ` +
     `${fmtTokens(st.tokens)} tokens served: ${fmtUsd(st.usd_per_mtok!)} per million tokens so far (illustrative prices).`
   );
+}
+
+// --- chapter 4: the latency term ------------------------------------------------------
+
+export function abCaption(x: AbStep, n: number, gpuName: string): string {
+  const r = x.ring;
+  const lead =
+    r.latShare >= 0.5
+      ? `latency-bound: the ${2 * (n - 1)} ring steps' fixed cost is ${pct(r.latShare)} of it`
+      : `bandwidth-bound: the fixed cost is ${pct(r.latShare)} of it`;
+  return `${fmtBytes(x.size)} all-reduce on ${n} ${gpuName}s: ring ${fmtTime(r.t)} (${lead}; bandwidth alone would say ${fmtTime(x.ringBwOnly)}), in-switch ${fmtTime(x.switch.t)}.`;
 }

@@ -53,9 +53,10 @@ export default function HomePage(): JSX.Element {
         </figure>
       </div>
       <CheckedStrip href="/about#validation">
-        Every hardware figure carries its source and the date it was read, and
-        the model is checked against published rack, switch and fabric totals
-        that it does not take as inputs.
+        Every hardware figure carries its source and the date it was read. The
+        model is cross-checked against published rack, switch and fabric totals
+        it does not take as inputs, and its collectives against a measured NCCL
+        all-reduce.
       </CheckedStrip>
       <section aria-labelledby="learn-heading" className="mt-12">
         <h2 id="learn-heading" className="text-xl font-semibold tracking-tight">
@@ -79,7 +80,7 @@ export default function HomePage(): JSX.Element {
           specifications are preliminary or planned are marked, and the model is
           checked against published figures (
           <Link href="/about#validation" className={LINK}>
-            its validation band
+            its checks, labelled by what each one tests
           </Link>
           ).
         </p>

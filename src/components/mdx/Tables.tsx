@@ -273,6 +273,12 @@ function plain(v: number): string {
   return v.toExponential(4).replace("e+", "e");
 }
 
+const KIND_LABEL: Record<string, string> = {
+  consistency: "spec cross-check",
+  rule: "rule",
+  measured: "measured",
+};
+
 export function ValidationTable({ only }: { only?: string }): JSX.Element {
   const rows = validation().filter((v) => !only || v.id.startsWith(only));
   return (
@@ -280,12 +286,13 @@ export function ValidationTable({ only }: { only?: string }): JSX.Element {
       className="my-6 overflow-x-auto"
       tabIndex={0}
       role="region"
-      aria-label="Validation"
+      aria-label="Checks against published figures"
     >
       <table className="w-full text-sm">
         <thead>
           <tr>
             <th className="text-left">Check</th>
+            <th className="text-left">Kind</th>
             <th className="text-right">Model</th>
             <th className="text-right">Published</th>
             <th className="text-right">Ratio</th>
@@ -300,6 +307,9 @@ export function ValidationTable({ only }: { only?: string }): JSX.Element {
                 <a href={SOURCES[v.src]!.url} className="text-[0.7rem]">
                   [{v.src}]
                 </a>
+              </td>
+              <td className="font-mono text-xs" data-kind={v.kind}>
+                {KIND_LABEL[v.kind]}
               </td>
               <td className="text-right font-mono">{plain(v.model)}</td>
               <td className="text-right font-mono">{plain(v.published)}</td>

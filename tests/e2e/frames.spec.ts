@@ -17,6 +17,7 @@ import {
   loopCaption,
   pipeCaption,
   ringCaption,
+  abCaption,
   smoothCaption,
   tcoCaption,
   torusCaption,
@@ -42,6 +43,7 @@ import {
   type TcoStep,
   type TorusStep,
   type Ring,
+  type AbStep,
   type Rung,
   type TreeStep,
 } from "@/lib/racks/model";
@@ -177,6 +179,37 @@ test("ring all-reduce: 4 GPUs, then 8", async ({ page }) => {
   const r8 = fx.ring.find((c) => c.n === 8 && c.seed === 7)!.out as Ring;
   await show(fig, 7);
   await expect(fig.getByTestId("caption")).toHaveText(ringCaption(r8, 7));
+});
+
+test("the latency term: 8 B200s, then 4 H200s", async ({ page }) => {
+  await page.goto("/learn/04-scale-up-nvlink");
+  const fig = page.getByTestId("ab-widget");
+  const sw = (g: string, n: number) =>
+    (fx.ab as { gpu: string; n: number; out: AbStep[] }[]).find(
+      (c) => c.gpu === g && c.n === n,
+    )!.out;
+  const a = sw("b200", 8);
+  for (const s of [0, 5, a.length - 1]) {
+    await show(fig, s);
+    await expect(fig.getByTestId("caption")).toHaveText(
+      abCaption(a[s]!, 8, "B200"),
+    );
+    await expect(fig.locator("svg[data-size]")).toHaveAttribute(
+      "data-size",
+      String(a[s]!.size),
+    );
+  }
+  await change(fig, () =>
+    fig.getByRole("radio", { name: "H200 (NVLink 4, measured)" }).click(),
+  );
+  await change(fig, () =>
+    fig.getByRole("radio", { name: "4", exact: true }).click(),
+  );
+  const b = sw("h200", 4);
+  await show(fig, 3);
+  await expect(fig.getByTestId("caption")).toHaveText(
+    abCaption(b[3]!, 4, "H200"),
+  );
 });
 
 test("fabric: 9,216 GPUs on 64-port switches, then 144-port", async ({
