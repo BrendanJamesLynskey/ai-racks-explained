@@ -8,12 +8,13 @@ import Link from "next/link";
 
 import { SECTIONS } from "@/lib/mdx/sections";
 import { KERNELS_URL, NVIDIA_GPU_HUB } from "@/lib/site";
+import { withShare } from "@/lib/share";
 
-export const metadata = {
+export const metadata = withShare("/learn", {
   title: "Learn",
   description:
     "Chapters on the machines that train and serve large models, from one GPU package to a hall of racks, each built around an animation driven by a tested model.",
-};
+});
 
 const A =
   "focus-ring rounded text-accent underline underline-offset-2 dark:text-indigo-300";

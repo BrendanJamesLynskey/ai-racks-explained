@@ -24,12 +24,13 @@ import {
   type Field,
 } from "@/lib/racks/model";
 import { repoFile } from "@/lib/site";
+import { withShare } from "@/lib/share";
 
-export const metadata = {
+export const metadata = withShare("/specs", {
   title: "Specifications",
   description:
     "Every hardware figure AI Racks Explained uses, with its status (stated, derived, not disclosed), its source and the date it was read.",
-};
+});
 
 const A =
   "focus-ring rounded text-accent underline underline-offset-2 dark:text-indigo-300";
