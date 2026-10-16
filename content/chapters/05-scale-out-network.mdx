@@ -59,6 +59,8 @@ const twoMax = k * down;
 
 Every switch-to-switch link here is optical, with a pluggable transceiver at each end, and at 9,216 GPUs a non-blocking fabric needs tens of thousands of them. **Co-packaged optics** move the optical engines into the switch package, removing the pluggable modules. NVIDIA quotes "3.5x power efficiency" for its co-packaged switches against pluggable transceivers; the claim is shown here, not used in the model.
 
+**Computing in the link.** A further step is for the optical module to do arithmetic on the data it carries. The [Compute in Transit results](https://compute-in-transit-results.vercel.app/) test one such case end to end: whether a photonic link module could compress training gradients as they cross the network. At the scale tested it could not do the compression that trains well (keeping the largest values needs comparisons), and the site asks why the same work should not be done by digital logic in the NIC.
+
 <SwitchTable />
 
 <Callout kind="deeper">
