@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s · AI Racks Explained",
   },
   description:
-    "The machines that train and serve large models, chip to data centre: packages, trays, NVLink racks and scale-out networks, each animated by a tested model with every hardware figure sourced.",
+    "The machines that train and serve large models, chip to data centre: packages, trays, NVLink racks, scale-out networks, power, cooling, disaggregated inference, training clusters, other designs and cost, each animated by a tested model with every hardware figure sourced.",
 };
 
 export default function RootLayout({

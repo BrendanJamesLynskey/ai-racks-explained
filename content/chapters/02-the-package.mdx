@@ -7,7 +7,7 @@
 
 <Layer kind="concept">
 
-A data-centre GPU is a **package**: one or two compute dies in the middle and stacks of HBM (high-bandwidth memory) around them, on a silicon interposer or bridge that carries thousands of wires between them. Each HBM stack is DRAM dies stacked on a base die, with a 1,024-bit interface; that width is why the stacks sit millimetres from the compute die instead of on the board.
+A data-centre GPU is a **package**: one or two compute dies in the middle and stacks of HBM (high-bandwidth memory) around them, on a silicon interposer or bridge that carries thousands of wires between them. Each HBM stack is DRAM dies stacked on a base die, with a 1,024-bit interface in HBM3 and HBM3E and a 2,048-bit one in HBM4 ("double from the previous generation", [SK hynix](https://news.skhynix.com/sk-hynix-completes-worlds-first-hbm4-development-and-readies-mass-production/)), which is much of why Rubin's per-stack bandwidth jumps; that width is why the stacks sit millimetres from the compute die instead of on the board.
 
 The two packages in the animation:
 
@@ -70,7 +70,7 @@ return {
   fields="hbm_bytes,hbm_bw,hbm_stacks,hbm_gen,dies,transistors,dense_fp8,tdp_w"
 />
 
-Blackwell's two dies are each as large as the lithography reticle allows; joining two of them is how the GPU grew past one die's limit. Rubin's specifications come from NVIDIA's Vera Rubin NVL72 page, whose NVLink figures NVIDIA marks preliminary.
+Blackwell's two dies are each as large as the lithography reticle allows; joining two of them is how the GPU grew past one die's limit. Rubin's specifications come from NVIDIA's Vera Rubin NVL72 page, whose NVLink figures NVIDIA marks preliminary. Each Blackwell row is the GPU as it sits in its NVL72 rack: per-GPU memory is the superchip's figure split two ways (186 GB for GB200), dense FP8 is NVIDIA's per-GPU table figure and power is the maximum board power (TGP). [AI Accelerators Explained](https://ai-accelerators-explained.vercel.app/learn/02-gpus-the-baseline) uses the same B200. The air-cooled HGX B200 is a different board, rated lower (4.5 PFLOPS dense FP8 per GPU, from [its page](https://www.nvidia.com/en-us/data-center/hgx/)).
 
 <Callout kind="deeper">
 
