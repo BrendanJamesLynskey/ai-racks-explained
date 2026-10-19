@@ -127,6 +127,20 @@ export default function HomePage(): JSX.Element {
         </Link>
         .
       </p>
+      <p
+        data-track-start
+        className="mt-12 text-sm text-neutral-600 dark:text-neutral-400"
+      >
+        New to the Hardware track?{" "}
+        <a
+          href={"https://gpu-kernels-explained.vercel.app/hardware"}
+          className="focus-ring rounded underline decoration-accent/40 underline-offset-4 hover:decoration-accent"
+        >
+          Start here
+        </a>
+        : the four sites in reading order, what you need first, and a glossary
+        of the terms they define.
+      </p>
       <HardwareWork />
       <p className="mt-12 text-sm text-neutral-600 dark:text-neutral-400">
         Part of the companion sites&apos; Hardware track, with{" "}
