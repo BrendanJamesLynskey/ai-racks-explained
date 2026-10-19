@@ -7,6 +7,8 @@
 
 <Layer kind="concept">
 
+<span id="r-rungs" />
+
 A training or inference cluster is built in rungs, each a box of the rung below. The animation climbs them for **GB200 NVL72** racks, arranged the way NVIDIA's published DGX SuperPOD reference architecture arranges them:
 
 - **The package**: one GPU, two compute dies and their HBM, reading memory at <V of="ladder.package.bw" fmt="rate" />.
@@ -16,7 +18,11 @@ A training or inference cluster is built in rungs, each a box of the rung below.
 - **The SuperPOD**: up to <V of="ladder.pod.children" fmt="int" /> scalable units, <V of="ladder.pod.gpus" fmt="int" /> GPUs.
 - **The hall**: sized by power. At about <V of="sys.gb200-nvl72.rack_power_w" fmt="watts" /> per rack, 100 MW of rack power is <V of="ladder.hall.children" fmt="int" /> racks, <V of="ladder.hall.gpus" fmt="int" /> GPUs.
 
+<span id="r-cliff" />
+
 Watch the bars as the camera zooms out. The rack boundary is the cliff: crossing it, a GPU's bandwidth falls <V of="ladder.su.drop" fmt="num" /> times, and beyond it, it never recovers. One gigabyte takes <V of="ladder.package.time" fmt="time" /> to read from HBM, <V of="ladder.rack.time" fmt="time" /> to send over NVLink and <V of="ladder.su.time" fmt="time" /> to send over the network.
+
+<span id="r-placement" />
 
 That one ratio shapes the rest of the design. Traffic that is heavy and frequent (tensor-parallel all-reduces in every layer, expert-parallel all-to-alls, KV caches handed from prefill to decode) is kept inside the NVLink domain. Traffic that is lighter or can overlap with compute (data-parallel gradient averaging, pipeline-stage activations) crosses the network. The rest of this site follows that line: what is inside the package ([chapter 2](/learn/02-the-package)), on the tray ([chapter 3](/learn/03-trays-and-nodes)), in the rack ([chapter 4](/learn/04-scale-up-nvlink)) and between racks ([chapter 5](/learn/05-scale-out-network)).
 
@@ -75,3 +81,73 @@ The same rack shape carries the next GPUs: GB300 NVL72 keeps <V of="sys.gb300-nv
 - NVIDIA, [DGX SuperPOD reference architecture (DGX GB200)](https://docs.nvidia.com/dgx-superpod/reference-architecture-scalable-infrastructure-gb200/latest/network-fabrics.html) and the [DGX GB200 user guide, hardware](https://docs.nvidia.com/dgx/dgxgb200-user-guide/hardware.html).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="r01-q1"
+  n={1}
+  input="number"
+  of="ladder.su.drop"
+  q="A GB200 GPU sends to another GPU in its rack over NVLink, then to one in the next rack over its network port. How many times does its bandwidth fall?"
+  href="#r-cliff"
+  more="The cliff at the rack boundary"
+>
+  <V of="ladder.su.drop" fmt="num" /> times:{" "}
+  <V of="ladder.rack.bw" fmt="rate" /> per direction inside the rack,{" "}
+  <V of="ladder.su.bw" fmt="rate" /> beyond it, and it never recovers further
+  out.
+</Check>
+
+<Check
+  id="r01-q2"
+  n={2}
+  choices={[
+    "Between two GPUs on one tray",
+    "Between two trays of the same rack",
+    "At the rack boundary",
+  ]}
+  answer={2}
+  q="Where is the big bandwidth cliff on the ladder?"
+  href="#r-cliff"
+  more="The cliff at the rack boundary"
+>
+  At the rack boundary: the whole NVL72 rack is one NVLink domain, so a GPU
+  reaches any other in the rack as fast as its neighbour on the same tray.
+</Check>
+
+<Check
+  id="r01-q3"
+  n={3}
+  choices={[
+    "Data-parallel gradient averaging",
+    "Tensor-parallel all-reduces, expert all-to-alls and KV hand-offs",
+    "Pipeline-stage activations",
+  ]}
+  answer={1}
+  q="Which traffic does a designer keep inside the NVLink domain?"
+  href="#r-placement"
+  more="What goes where"
+>
+  The heavy, frequent traffic: tensor-parallel all-reduces in every layer,
+  expert-parallel all-to-alls and prefill-to-decode KV hand-offs. Lighter or
+  overlappable traffic (gradient averaging, pipeline activations) crosses the
+  network.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- A cluster is built in rungs: package, tray, rack, scalable unit, SuperPOD, hall.
+- The NVLink domain is the whole rack: every GPU reaches every other at full NVLink speed.
+- Crossing the rack boundary costs an order of magnitude in bandwidth.
+- Heavy, frequent traffic stays inside the rack; light or overlappable traffic crosses the network.
+
+<Keep>
+  $t = S/B$ at each rung: one gigabyte takes{" "}
+  <V of="ladder.rack.time" fmt="time" /> over NVLink and{" "}
+  <V of="ladder.su.time" fmt="time" /> over the network.
+</Keep>
+
+</Remember>

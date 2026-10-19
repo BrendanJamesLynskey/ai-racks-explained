@@ -9,13 +9,19 @@
 
 A GB200 NVL72 rack draws about <V of="sys.gb200-nvl72.rack_power_w" fmt="watts" />, NVIDIA's own figure in the DGX GB200 user guide. Spread over its <V of="sys.gb200-nvl72.gpus" fmt="int" /> GPUs that is <V of="pow.per_gpu_w" fmt="watts" /> each, against a Blackwell GPU's maximum of <V of="gpu.b200.tdp_w" fmt="watts" />: the rest goes to the Grace CPUs, the NVLink switch trays, network cards, fans and conversion losses.
 
+<span id="r-shelves" />
+
 **Power shelves.** The rack does not take mains power into each tray. <V of="pow.shelves" fmt="int" /> power shelves, each holding <V of="sys.gb200-nvl72.psus_per_shelf" fmt="int" /> supplies of <V of="sys.gb200-nvl72.psu_w" fmt="watts" />, convert AC to a DC bus of about <V of="pow.dc_v" fmt="int" /> V. That is <V of="pow.installed_w" fmt="watts" /> of supplies, arranged N+N: either half can carry the rack, so <V of="pow.usable_w" fmt="watts" /> survives the loss of half of them, <V of="pow.margin" fmt="num" /> times the rack's draw.
+
+<span id="r-busbar" />
 
 **The busbar.** At <V of="pow.dc_v" fmt="int" /> V, <V of="sys.gb200-nvl72.rack_power_w" fmt="watts" /> is <V of="pow.busbar_a" fmt="int" /> A, carried by copper bars down the back of the rack. Current is what costs copper and heat: the loss in a conductor is I²R, so for the same power it falls with the square of the voltage. NVIDIA's plan for racks of <V of="fac.power.mw_rack_w" fmt="watts" /> (stated for 2027, so planned, not shipping) is to bring <V of="fac.power.hvdc_v" fmt="int" /> V DC to the rack instead of <V of="fac.power.busbar_v" fmt="int" /> V: it says a 1 MW rack at 54 V would need up to <V of="fac.power.copper_1mw_kg" fmt="int" /> kg of busbar copper.
 
 <BusbarTable />
 
 The copper column is our extrapolation, not NVIDIA's: copper in proportion to current, at the current density of NVIDIA's 1 MW, 54 V example.
+
+<span id="r-smoothing" />
 
 **Power smoothing.** Training is synchronous. Every GPU computes, then every GPU waits for the same all-reduce, so a whole hall's power rises and falls together; the Llama 3 paper reports fluctuations "on the order of tens of megawatts". The animation shows one rack's share. With no storage, the grid sees the full swing. GB300 NVL72's power supplies hold <V of="fac.power.storage_j_per_gpu" fmt="int" /> J per GPU in capacitors (NVIDIA's figure). If the load swings every 0.05 s, that store flattens the grid's draw completely and cuts the peak by <V of="smooth.fast.gb300.peak_cut" fmt="pct" />. If it swings every quarter of a second, the store runs empty in each high phase and the cut falls to <V of="smooth.mid.gb300.peak_cut" fmt="pct" />. At one second it is <V of="smooth.slow.gb300.peak_cut" fmt="pct" />. Capacitors are for sub-second ripple; slower swings need the other tools NVIDIA describes (power caps that ramp gradually, and a "power burner" that keeps GPUs drawing while the job pauses) or batteries outside the rack. NVIDIA reports a 30% cut in peak grid demand on a real training run; that is its measurement, quoted, not this model's output.
 
@@ -70,3 +76,71 @@ const low = pLo + used / tLo;
 - NVIDIA, [800 VDC architecture](https://developer.nvidia.com/blog/nvidia-800-v-hvdc-architecture-will-power-the-next-generation-of-ai-factories/), [GB300 NVL72 power smoothing](https://developer.nvidia.com/blog/how-new-gb300-nvl72-features-provide-steady-power-for-ai/) and the [DGX GB200 user guide](https://docs.nvidia.com/dgx/dgxgb200-user-guide/hardware.html); Grattafiori et al., [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783), section 3.3.4.
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="r06-q1"
+  n={1}
+  input="number"
+  of="pow.busbar_a"
+  fmt="int"
+  q="A GB200 NVL72 rack's power on its DC busbar: how many amps?"
+  href="#r-busbar"
+  more="The busbar"
+>
+  <V of="pow.busbar_a" fmt="int" /> A:{" "}
+  <V of="sys.gb200-nvl72.rack_power_w" fmt="watts" /> at about{" "}
+  <V of="pow.dc_v" fmt="int" /> V. The current is what costs copper and heat.
+</Check>
+
+<Check
+  id="r06-q2"
+  n={2}
+  choices={[
+    "It halves",
+    "It falls with the square of the voltage",
+    "It stays the same: the power is the same",
+  ]}
+  answer={1}
+  q="Deliver the same power at a higher DC voltage. What happens to the conduction loss?"
+  href="#r-busbar"
+  more="The busbar"
+>
+  The loss is $I^2 R$, and for the same power the current falls as the voltage
+  rises, so the loss falls with the voltage squared. That is the case for{" "}
+  <V of="fac.power.hvdc_v" fmt="int" /> V DC racks.
+</Check>
+
+<Check
+  id="r06-q3"
+  n={3}
+  input="slider"
+  min={0}
+  max={50}
+  step={1}
+  of="smooth.mid.gb300.peak_cut"
+  fmt="pct"
+  abs={3}
+  q="A training load swinging every quarter of a second: by how much do GB300's power-supply capacitors cut the grid's peak?"
+  href="#r-smoothing"
+  more="Power smoothing"
+>
+  <V of="smooth.mid.gb300.peak_cut" fmt="pct" />: the store runs empty in each
+  high phase. At 0.05 s swings it flattens the draw completely, a cut of
+  <V of="smooth.fast.gb300.peak_cut" fmt="pct" />: capacitors are for sub-second
+  ripple.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- An NVL72 rack draws about <V of="sys.gb200-nvl72.rack_power_w" fmt="watts" />: GPUs, Grace CPUs, switch trays, NICs, fans and conversion losses.
+- Power shelves turn AC into a DC busbar, with N+N supplies.
+- Loss is $I^2 R$: higher voltage means less current and far less copper.
+- Synchronous training swings a whole hall's power; capacitors smooth only sub-second ripple.
+
+<Keep>For the same power, conduction loss falls as $1/V^2$.</Keep>
+
+</Remember>

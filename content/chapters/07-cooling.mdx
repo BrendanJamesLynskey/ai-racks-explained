@@ -9,7 +9,11 @@
 
 Every watt a rack draws ends up as heat, and something has to carry it away. A fluid carries heat $Q = \dot m\,c_p\,\Delta T$: its mass flow, times its specific heat, times how much it warms. Water's specific heat is <V of="phys.water_cp" fmt="int" /> J/(kg K) (NIST's equation at 25 °C); air's is <V of="phys.air_cp" fmt="int" /> J/(kg K), and a cubic metre of air weighs only <V of="phys.air_density" fmt="num" /> kg. So, volume for volume, water carries thousands of times more heat.
 
+<span id="r-air" />
+
 **Why air runs out.** To carry a <V of="sys.gb200-nvl72.rack_power_w" fmt="watts" /> rack's heat, warming by 15 K, air needs <V of="flow.r120.air_m3_s" fmt="num" /> m³ a second (<V of="flow.r120.air_cfm" fmt="int" /> cubic feet a minute) through one rack. Water warming by 10 K needs <V of="flow.r120.water_l_min" fmt="int" /> litres a minute: <V of="flow.r120.vol_ratio" fmt="int" /> times less volume. NVIDIA's own comparison is that data centres "once operated at <V of="fac.cooling.legacy_rack_w" fmt="watts" /> per rack" and that hyperscale facilities now support "over <V of="fac.cooling.hyperscale_rack_w" fmt="watts" /> per rack"; air was designed for the first.
+
+<span id="r-loop" />
 
 **The liquid loop.** In a GB200 NVL72, the CPUs and GPUs sit under cold plates, and coolant runs up and down the rack through manifolds; networking and storage stay air-cooled (NVIDIA's DGX GB200 user guide). The animation follows the coolant:
 
@@ -19,6 +23,8 @@ Every watt a rack draws ends up as heat, and something has to carry it away. A f
 - the **return manifold** brings it back to the CDU, whose exchanger hands the heat to the **facility water**, which leaves for chillers, cooling towers or dry coolers.
 
 With 90% of the heat on cold plates (an illustrative share: NVIDIA does not publish one), facility water at 30 °C and a 10 K rise, the loop runs at <V of="loop.t30.d10.l_min" fmt="int" /> L/min, <V of="loop.t30.d10.per_tray_kg_s" fmt="num" /> kg/s through each tray, from <V of="loop.t30.d10.t_sup" fmt="temp" /> to <V of="loop.t30.d10.t_ret" fmt="temp" />. One <V of="fac.cooling.cdu_w" fmt="watts" /> CDU serves <V of="loop.t30.d10.racks_per_cdu" fmt="int" /> such racks.
+
+<span id="r-warm" />
 
 **Warm water.** The warmer the coolant can run, the less work the facility does to cool it: with warm enough facility water, dry coolers that use outside air can replace chillers. NVIDIA's 100 MW Vera Rubin reference factory states a <V of="sys.vr-nvl72.inlet_c" fmt="temp" /> inlet temperature. Try 40 °C facility water in the animation: the coolant then leaves the CDU at <V of="loop.t40.d10.t_sup" fmt="temp" />. The limit is the chips: the cold plate has to keep each die below its own maximum while the coolant arrives warmer.
 
@@ -71,3 +77,70 @@ const kgS = qLiq / (waterCp() * dt);
 - NVIDIA, [Blackwell water efficiency and liquid cooling](https://blogs.nvidia.com/blog/blackwell-platform-water-efficiency-liquid-cooling-data-centers-ai-factories/) and the [DGX GB200 user guide](https://docs.nvidia.com/dgx/dgxgb200-user-guide/hardware.html); NIST, [water thermochemistry](https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Mask=2); NASA Glenn, [air properties](https://www.grc.nasa.gov/www/k-12/airplane/airprop.html).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="r07-q1"
+  n={1}
+  input="number"
+  of="flow.r120.vol_ratio"
+  fmt="int"
+  q="Carrying a GB200 NVL72's heat, air warming 15 K against water warming 10 K: how many times more volume of air per second?"
+  href="#r-air"
+  more="Why air runs out"
+>
+  About <V of="flow.r120.vol_ratio" fmt="int" /> times:
+  <V of="flow.r120.air_m3_s" fmt="num" /> m³ of air a second against
+  <V of="flow.r120.water_l_min" fmt="int" /> litres of water a minute. Water's
+  specific heat is <V of="phys.water_cp" fmt="int" /> J/(kg K) against air's
+  <V of="phys.air_cp" fmt="int" />, and a cubic metre of air weighs only
+  <V of="phys.air_density" fmt="num" /> kg.
+</Check>
+
+<Check
+  id="r07-q2"
+  n={2}
+  input="number"
+  of="flow.r120.water_l_min"
+  fmt="int"
+  q="And how many litres of water a minute does that rack need at a 10 K rise?"
+  href="#r-air"
+  more="Why air runs out"
+>
+  <V of="flow.r120.water_l_min" fmt="int" />, from $\dot m = Q / (c_p\,\Delta
+  T)$. Halve the rise and the flow doubles.
+</Check>
+
+<Check
+  id="r07-q3"
+  n={3}
+  choices={[
+    "The chips run faster when warm",
+    "Dry coolers using outside air can replace chillers, so the facility does less work",
+    "Warm water carries more heat per litre",
+  ]}
+  answer={1}
+  q="Why do data centres want to run their coolant warm?"
+  href="#r-warm"
+  more="Warm water"
+>
+  The warmer the facility water may be, the less the facility must cool it: dry
+  coolers can replace chillers. The limit is each die's maximum temperature with
+  the coolant arriving warmer.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- Every watt a rack draws becomes heat: $Q = \dot m\,c_p\,\Delta T$.
+- Volume for volume, water carries thousands of times more heat than air.
+- The liquid loop: CDU, supply manifold, cold plates, return manifold, facility water.
+- Warmer coolant lets dry coolers replace chillers; at a megawatt a rack, liquid is not optional.
+
+<Keep>
+  $\dot m = Q / (c_p\,\Delta T)$: halve the temperature rise, double the flow.
+</Keep>
+
+</Remember>
