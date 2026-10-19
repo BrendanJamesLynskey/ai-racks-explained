@@ -7,11 +7,17 @@
 
 <Layer kind="concept">
 
+<span id="r-split" />
+
 A model too large for one GPU is split three ways ([Training, chapters 11 and 12](https://transformer-training-explained.vercel.app/training/12-model-parallelism) explain each). **Tensor parallelism** splits every layer across a few GPUs, which then all-reduce their partial results twice per layer, every micro-batch. **Pipeline parallelism** gives each group of layers to a different set of GPUs and passes activations from stage to stage. **Data parallelism** runs copies of the whole arrangement on different data and averages their gradients once a step, which can overlap with the backward pass. The traffic falls in that order. Narayanan et al. (2021) give the rule for servers of $g$ GPUs: tensor parallelism up to degree $g$, inside the server's NVLink domain, then pipeline parallelism across servers; data parallelism, the lightest, goes outermost.
 
 The animation places a small job, one tensor-parallel group per frame, in the order Llama 3's training used: tensor-parallel ranks innermost, then pipeline stage, then replica. Each line joins a group to the stage before it: green when the activations stay on NVLink, dashed blue when they cross the network.
 
+<span id="r-rehoused" />
+
 **Llama 3 405B, re-housed.** One stage of Llama 3 405B's pre-training ran on <V of="llama.gpus" fmt="int" /> H100 GPUs as TP <V of="llama.tp" fmt="int" /> × PP <V of="llama.pp" fmt="int" /> × DP <V of="llama.dp" fmt="int" />, eight GPUs to an NVLink server. On those servers, all <V of="lay.l8x16x128.d8.tp_groups" fmt="int" /> tensor-parallel groups fit inside one server, and every one of the <V of="lay.l8x16x128.d8.pp_hops" fmt="int" /> pipeline hops crosses the network (<V of="lay.l8x16x128.d8.pp_net" fmt="int" />). Laid out the same way on NVL72 racks, the job fills <V of="lay.l8x16x128.d72.domains" fmt="int" /> racks and only <V of="lay.l8x16x128.d72.pp_net" fmt="int" /> of the pipeline hops cross a rack boundary; the rest move to NVLink. The data-parallel gradient averaging crosses the network either way (<V of="lay.l8x16x128.d72.dp_net" fmt="int" /> of <V of="lay.l8x16x128.d72.dp_groups" fmt="int" /> groups). This is an illustration of the layout rule, not a description of any real deployment.
+
+<span id="r-interruptions" />
 
 **Interruptions.** At this scale, failure is routine. Over a 54-day period of Llama 3 405B pre-training Meta counted <V of="llama.unexpected" fmt="int" /> unexpected interruptions; about 78% were confirmed or suspected hardware issues, and GPU issues alone were 58.7% (the paper's Table 5). In synchronous training one failed GPU stops the whole job, which restarts from its last checkpoint. As one rate, that is <V of="llama.rate" fmt="num" /> interruptions per GPU-hour, so a job of <V of="ckpt.n16384.s60.gpus" fmt="int" /> GPUs is interrupted every <V of="ckpt.n16384.s60.mtbf_s" fmt="time" /> on average. Young's rule (1974) sets the checkpoint interval at $\sqrt{2\,\delta M}$ for a save time $\delta$ and mean time between failures $M$: with a 60 s save, every <V of="ckpt.n16384.s60.tau_s" fmt="time" />, losing about <V of="ckpt.n16384.s60.waste" fmt="pct" /> of the time. At <V of="ckpt.n100000.s60.gpus" fmt="int" /> GPUs that rises to <V of="ckpt.n100000.s60.waste" fmt="pct" />, which is why fast checkpointing, quick restart and automatic diagnosis matter as much as the GPUs ([Training, chapter 15](https://transformer-training-explained.vercel.app/training/15-running-a-real-job)).
 
@@ -57,3 +63,69 @@ const tau = Math.sqrt(2 * saveS * mtbf);
 - Grattafiori et al., [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783) (Table 4, section 3.3.4); Narayanan et al., [Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM](https://arxiv.org/abs/2104.04473); Young, [A first order approximation to the optimum checkpoint interval](https://doi.org/10.1145/361147.361115).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="r09-q1"
+  n={1}
+  choices={["Data parallelism", "Pipeline parallelism", "Tensor parallelism"]}
+  answer={2}
+  q="Which parallelism goes innermost, inside the NVLink domain?"
+  href="#r-split"
+  more="Three ways to split"
+>
+  Tensor parallelism: it all-reduces twice per layer, every micro-batch.
+  Pipeline stages go across servers; data parallelism, the lightest and most
+  overlappable, goes outermost.
+</Check>
+
+<Check
+  id="r09-q2"
+  n={2}
+  input="number"
+  of="lay.l8x16x128.d72.pp_net"
+  fmt="int"
+  q="Llama 3 405B's TP 8 × PP 16 × DP 128 layout re-housed on NVL72 racks: how many of its pipeline hops still cross a rack boundary?"
+  href="#r-rehoused"
+  more="Llama 3 405B, re-housed"
+>
+  <V of="lay.l8x16x128.d72.pp_net" fmt="int" /> of
+  <V of="lay.l8x16x128.d8.pp_hops" fmt="int" />. On 8-GPU servers every one
+  crossed the network; in 72-GPU domains most move to NVLink.
+</Check>
+
+<Check
+  id="r09-q3"
+  n={3}
+  input="slider"
+  min={0}
+  max={50}
+  step={1}
+  of="ckpt.n16384.s60.waste"
+  fmt="pct"
+  abs={3}
+  q="A 16,384-GPU job at Llama 3's interruption rate, saving checkpoints in 60 s at Young's interval: what share of the time is lost?"
+  href="#r-interruptions"
+  more="Interruptions"
+>
+  About <V of="ckpt.n16384.s60.waste" fmt="pct" />, interrupted every
+  <V of="ckpt.n16384.s60.mtbf_s" fmt="time" /> on average. At 100,000 GPUs it is{" "}
+  <V of="ckpt.n100000.s60.waste" fmt="pct" />.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- Tensor parallelism innermost (inside NVLink), then pipeline, then data parallelism outermost.
+- Bigger NVLink domains move pipeline hops off the network; gradient averaging crosses it either way.
+- At scale, failure is routine: one failed GPU stops a synchronous job.
+- Young's rule sets the checkpoint interval at $\sqrt{2\,\delta M}$; the lost time grows with the job.
+
+<Keep>
+  Checkpoint every $\sqrt{2\,\delta M}$: save time $\delta$, mean time between
+  failures $M$.
+</Keep>
+
+</Remember>

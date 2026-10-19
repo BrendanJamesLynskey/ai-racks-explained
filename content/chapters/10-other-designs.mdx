@@ -9,9 +9,15 @@
 
 NVIDIA's racks answer the scale-up question with switches: every GPU has a link to every NVLink switch chip, so any two GPUs in the rack are one switch hop apart ([chapter 4](/learn/04-scale-up-nvlink)). That is not the only answer.
 
+<span id="r-tpu" />
+
 **Google's TPU pods: a torus and optical switches.** A TPU chip links directly to its neighbours: six links, one each way in three dimensions. Sixty-four chips form a 4×4×4 cube wired with copper; the cubes are joined through optical circuit switches, which can be reconfigured to shape the pod into the torus a job needs. A TPU v5p pod has <V of="other.tpu-v5p.chips" fmt="int" /> chips, each with <V of="other.tpu-v5p.scaleup_bidir" fmt="rate" /> of inter-chip bandwidth (both directions, Google's documentation); the TPU v4 paper reports that the optical switches and their optics are "&lt;5% of system cost and &lt;3% of system power". The TPU7x (Ironwood) pod has <V of="other.tpu-7x.chips" fmt="int" /> chips.
 
+<span id="r-torus" />
+
 A torus trades hops for wiring. In the animation, a message from one chip of a 4×4×4 cube reaches its six neighbours in one hop and the farthest chip in <V of="torus.k4.diameter" fmt="int" />; the mean is <V of="torus.k4.mean_hops" fmt="num" /> hops, against one in a switched rack. Neighbour traffic (a ring all-reduce, pipeline stages laid along a dimension) uses a torus well. All-to-all traffic, as in mixture-of-experts layers, is limited by the links a cut through the middle crosses: <V of="torus.k4.bisection_links" fmt="int" /> for the cube. With each chip's bandwidth split equally over its six links (our assumption: Google states only the per-chip total), a 64 MB all-to-all within a cube takes at least <V of="tpu.64MB.t_torus" fmt="time" />, against <V of="tpu.64MB.t_nvl72" fmt="time" /> in a GB200 NVL72 rack (<V of="tpu.64MB.ratio" fmt="num" /> times less). Part of that gap is the NVL72 GPU's larger per-chip bandwidth; the rest is the bisection.
+
+<span id="r-helios" />
 
 **AMD Helios: a 72-GPU rack, double width.** AMD's Helios reference rack holds <V of="other.helios.chips" fmt="int" /> Instinct MI450 GPUs with "up to <V of="other.helios.scaleup_total" fmt="rate" /> of scale-up interconnect bandwidth", <V of="other.helios.scaleup_per_chip" fmt="rate" /> per GPU if spread evenly, and <V of="other.helios.scaleout_total" fmt="rate" /> of Ethernet scale-out. Each GPU has up to <V of="other.helios.hbm_bytes" fmt="bytes" /> of HBM4 at <V of="other.helios.hbm_bw" fmt="rate" />. It is built on the Open Rack Wide specification, a double-wide liquid-cooled rack submitted to OCP, and AMD frames it around open standards (OCP, UALink, Ultra Ethernet). AMD expects volume deployment in 2026, so it is marked planned.
 
@@ -66,3 +72,71 @@ for (let i = 0; i < n; i++) {
 - Jouppi et al., [TPU v4](https://arxiv.org/abs/2304.01433); Google Cloud, [TPU v5p](https://cloud.google.com/tpu/docs/v5p) and [TPU7x](https://cloud.google.com/tpu/docs/tpu7x); AMD, [Helios](https://www.amd.com/en/blogs/2025/amd-helios-ai-rack-built-on-metas-2025-ocp-design.html); AWS, [Trn2](https://aws.amazon.com/ec2/instance-types/trn2/) and [Trainium](https://aws.amazon.com/ai/machine-learning/trainium/).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="r10-q1"
+  n={1}
+  input="number"
+  of="torus.k4.diameter"
+  fmt="int"
+  tol={0}
+  q="In a 4 × 4 × 4 torus with wrap-around links, how many hops to the farthest chip?"
+  href="#r-torus"
+  more="Hops for wiring"
+>
+  <V of="torus.k4.diameter" fmt="int" />: two in each dimension, thanks to the
+  wrap-around. The mean is <V of="torus.k4.mean_hops" fmt="num" />, against one
+  switch hop in an NVL72.
+</Check>
+
+<Check
+  id="r10-q2"
+  n={2}
+  input="number"
+  of="tpu.64MB.ratio"
+  tol={0.1}
+  q="A 64 MB all-to-all within one 64-chip cube against inside a GB200 NVL72: how many times longer at least?"
+  href="#r-torus"
+  more="Hops for wiring"
+>
+  <V of="tpu.64MB.ratio" fmt="num" /> times:{" "}
+  <V of="tpu.64MB.t_torus" fmt="time" /> in the cube,
+  <V of="tpu.64MB.t_nvl72" fmt="time" /> in the rack. All-to-all is limited by
+  the links a cut through the middle crosses, and partly by the GPU's larger
+  per-chip bandwidth.
+</Check>
+
+<Check
+  id="r10-q3"
+  n={3}
+  choices={[
+    "All-to-all, as in mixture-of-experts layers",
+    "Neighbour traffic: ring all-reduces and pipeline stages laid along a dimension",
+    "Neither: a torus is slower at everything",
+  ]}
+  answer={1}
+  q="What traffic does a torus serve well?"
+  href="#r-torus"
+  more="Hops for wiring"
+>
+  Neighbour traffic, which uses the direct links. All-to-all must cross the
+  bisection, which a switched rack provides in full.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- Scale-up need not be switched: TPU pods link chips directly into a torus, joined by optical circuit switches.
+- A torus trades hops for wiring: fine for neighbour traffic, bisection-limited for all-to-all.
+- AMD Helios and AWS UltraServers are other shapes of the fast domain.
+- What the designs change is the size and shape of the fast domain.
+
+<Keep>
+  Mean hops in a $k$-ary $n$-cube: $n k^{n + 1} / (4(k^n - 1))$,
+  <V of="torus.k4.mean_hops" fmt="num" /> for $4 \times 4 \times 4$.
+</Keep>
+
+</Remember>

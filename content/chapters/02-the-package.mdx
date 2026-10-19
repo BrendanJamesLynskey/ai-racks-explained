@@ -14,9 +14,15 @@ The two packages in the animation:
 - **H100 SXM5**: one die and <V of="gpu.h100.hbm_stacks" fmt="int" /> HBM3 stacks of <V of="pkg.h100.per_stack_bytes" fmt="bytes" />, <V of="pkg.h100.per_stack_bw" fmt="rate" /> each. The full GH100 die has six HBM sites; the SXM5 product uses five (NVIDIA's Hopper in-depth blog).
 - **Blackwell Ultra**: two reticle-limited dies joined by a 10 TB/s die-to-die link into one GPU, and <V of="gpu.b300.hbm_stacks" fmt="int" /> twelve-high HBM3E stacks of <V of="pkg.b300.per_stack_bytes" fmt="bytes" />, <V of="pkg.b300.per_stack_bw" fmt="rate" /> each: <V of="gpu.b300.hbm_bytes" fmt="bytes" /> in all.
 
+<span id="r-capacity" />
+
 Capacity decides **how many GPUs** a model needs before any parallelism choice is made. Llama 3.1 405B in FP8 is <V of="fit.h100.llama3-405b.fp8.weights" fmt="bytes" /> of weights: <V of="fit.h100.llama3-405b.fp8.gpus" fmt="int" /> H100s, or <V of="fit.b300.llama3-405b.fp8.gpus" fmt="int" /> Blackwell Ultras.
 
+<span id="r-bandwidth" />
+
 Bandwidth decides **how fast** those weights can be used. Generating one token at batch size 1 reads every weight once, so a GPU holding <V of="fit.b300.llama3-405b.fp8.share" fmt="bytes" /> of them cannot produce a token faster than <V of="fit.b300.llama3-405b.fp8.read_time" fmt="time" />, whatever its arithmetic. Batching many requests shares that read; the [Serving site's roofline chapter](https://llm-inference-explained.vercel.app/learn/03-roofline) shows where it stops helping.
+
+<span id="r-ridge" />
 
 Arithmetic has grown faster than memory bandwidth. Dense FP8 per byte of HBM bandwidth (the roofline's ridge point) is <V of="pkg.h100.ridge_fp8" fmt="num" /> flop/byte on H100, <V of="pkg.b300.ridge_fp8" fmt="num" /> on Blackwell Ultra and <V of="pkg.rubin.ridge_fp8" fmt="num" /> on Rubin. And capacity has grown faster than bandwidth on Blackwell Ultra: reading its whole HBM once takes <V of="pkg.b300.sweep_time" fmt="time" />, against <V of="pkg.h100.sweep_time" fmt="time" /> on H100; Rubin's HBM4 brings it to <V of="pkg.rubin.sweep_time" fmt="time" />.
 
@@ -79,3 +85,72 @@ Blackwell's two dies are each as large as the lithography reticle allows; joinin
 - NVIDIA, [Inside NVIDIA Blackwell Ultra](https://developer.nvidia.com/blog/inside-nvidia-blackwell-ultra-the-chip-powering-the-ai-factory-era/) and [Hopper architecture in depth](https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="r02-q1"
+  n={1}
+  input="number"
+  of="fit.h100.llama3-405b.fp8.gpus"
+  fmt="int"
+  tol={0}
+  q="Llama 3.1 405B in FP8: how many H100s does it take just to hold the weights?"
+  href="#r-capacity"
+  more="Capacity"
+>
+  <V of="fit.h100.llama3-405b.fp8.gpus" fmt="int" />, for
+  <V of="fit.h100.llama3-405b.fp8.weights" fmt="bytes" /> of weights; Blackwell
+  Ultra's larger HBM holds them in
+  <V of="fit.b300.llama3-405b.fp8.gpus" fmt="int" />.
+</Check>
+
+<Check
+  id="r02-q2"
+  n={2}
+  input="number"
+  of="fit.b300.llama3-405b.fp8.read_time"
+  fmt="time"
+  q="Split over those Blackwell Ultras at batch 1, what is the fastest a token can come, in milliseconds?"
+  href="#r-bandwidth"
+  more="Bandwidth"
+>
+  <V of="fit.b300.llama3-405b.fp8.read_time" fmt="time" />: each GPU must read
+  its <V of="fit.b300.llama3-405b.fp8.share" fmt="bytes" /> share of the weights
+  once per token, whatever its arithmetic.
+</Check>
+
+<Check
+  id="r02-q3"
+  n={3}
+  choices={[
+    "It falls: memory has caught up",
+    "It rises every generation: arithmetic grows faster than bandwidth",
+    "It stays about the same",
+  ]}
+  answer={1}
+  q="From H100 to Blackwell Ultra to Rubin, what happens to the FP8 ridge point (flops per byte of HBM)?"
+  href="#r-ridge"
+  more="The ridge moves"
+>
+  <V of="pkg.h100.ridge_fp8" fmt="num" />,{" "}
+  <V of="pkg.b300.ridge_fp8" fmt="num" /> and{" "}
+  <V of="pkg.rubin.ridge_fp8" fmt="num" /> flop per byte: each generation needs
+  more reuse per byte before its arithmetic is the limit.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- A GPU package is compute dies plus HBM stacks on an interposer; the stack's wide interface is why it sits millimetres away.
+- Capacity sets how many GPUs a model needs before any parallelism choice.
+- Bandwidth sets how fast: a batch-1 token reads every weight once.
+- Arithmetic grows faster than bandwidth, so the ridge point rises each generation.
+
+<Keep>
+  $N_{\text{GPU}} = \lceil W / C_{\text{HBM}} \rceil$ and
+  $t_{\text{read}} = (W / N_{\text{GPU}}) / B_{\text{HBM}}$.
+</Keep>
+
+</Remember>

@@ -9,9 +9,15 @@
 
 Past the rack, GPUs reach each other through a switched network: InfiniBand (NVIDIA Quantum) or Ethernet (Spectrum-X and others), one port per GPU. The standard shape is the **fat tree**, or folded Clos network (Leiserson 1985; Al-Fares, Loukissas and Vahdat 2008): **leaf** switches connect GPUs, **spine** switches connect leaves, and when that runs out, **core** switches connect groups of leaves and spines. If every leaf has as many links up as GPUs down, any half of the GPUs can talk to the other half at full rate: the fabric is **non-blocking**.
 
+<span id="r-size" />
+
 The switch's port count sets the size. Two tiers of $k$-port switches reach $k \times k/2$ GPUs: <V of="tree.n2048.k64.o1.two_tier_max" fmt="int" /> with 64-port Quantum-2 switches, <V of="tree.n9216.k144.o1.two_tier_max" fmt="int" /> with 144-port Quantum-X800 switches (NVIDIA says its 144-port photonics switch connects "over 10,000 GPUs" in a non-blocking two-level fat tree). Beyond that a third tier is needed, and the longest path grows from 4 links to 6.
 
+<span id="r-build" />
+
 Build a fabric for <V of="tree.n9216.k64.o1.n" fmt="int" /> GPUs in the animation. With 64-port switches it takes three tiers and <V of="tree.n9216.k64.o1.switches" fmt="int" /> switches; with 144-port switches, two tiers and <V of="tree.n9216.k144.o1.switches" fmt="int" />. The transceivers follow the links: <V of="tree.n9216.k64.o1.transceivers" fmt="int" /> against <V of="tree.n9216.k144.o1.transceivers" fmt="int" />, six per GPU against four.
+
+<span id="r-oversub" />
 
 **Oversubscription** trades bandwidth for hardware: at 2:1 a leaf gives two-thirds of its ports to GPUs and one-third to uplinks, so 9,216 GPUs on 64-port switches need <V of="tree.n9216.k64.o2.switches" fmt="int" /> switches instead of <V of="tree.n9216.k64.o1.switches" fmt="int" />, but when every GPU sends across the fabric at once each gets half its port's rate.
 
@@ -70,3 +76,70 @@ Every switch-to-switch link here is optical, with a pluggable transceiver at eac
 - Al-Fares, Loukissas and Vahdat, [A scalable, commodity data center network architecture](https://doi.org/10.1145/1402946.1402967); NVIDIA, [DGX SuperPOD network fabrics](https://docs.nvidia.com/dgx-superpod/reference-architecture-scalable-infrastructure-gb200/latest/network-fabrics.html) and [co-packaged optics](https://developer.nvidia.com/blog/scaling-ai-factories-with-co-packaged-optics-for-better-power-efficiency/).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="r05-q1"
+  n={1}
+  input="number"
+  of="tree.n2048.k64.o1.two_tier_max"
+  fmt="int"
+  q="Two tiers of non-blocking 64-port switches: how many GPUs at most?"
+  href="#r-size"
+  more="Port count sets the size"
+>
+  <V of="tree.n2048.k64.o1.two_tier_max" fmt="int" />, $k \times k/2$: each leaf
+  gives half its ports to GPUs and half to the spines. Beyond that a third tier
+  is needed.
+</Check>
+
+<Check
+  id="r05-q2"
+  n={2}
+  input="number"
+  v="ch05.xcvrPerGpu"
+  tol={0}
+  q="9,216 GPUs on three tiers of 64-port switches: how many optical transceivers per GPU?"
+  href="#r-build"
+  more="Building the fabric"
+>
+  <V v="ch05.xcvrPerGpu" fmt="num" />: two per optical link, at every tier. With
+  144-port switches the fabric needs only two tiers and
+  <V v="ch05.xcvrPerGpu144" fmt="num" /> per GPU.
+</Check>
+
+<Check
+  id="r05-q3"
+  n={3}
+  choices={[
+    "Nothing: the fabric is still non-blocking",
+    "Each GPU gets half its port's rate when every GPU sends across the fabric at once",
+    "Each GPU gets a quarter of its rate all the time",
+  ]}
+  answer={1}
+  q="Oversubscribe the leaves 2:1 to save switches. What does it cost?"
+  href="#r-oversub"
+  more="Oversubscription"
+>
+  Bandwidth under full load: a leaf has half as much uplink as downlink, so
+  traffic that crosses the fabric from every GPU at once gets half rate. It
+  saves switches: <V of="tree.n9216.k64.o2.switches" fmt="int" /> instead of
+  <V of="tree.n9216.k64.o1.switches" fmt="int" />.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- Past the rack, a fat tree of leaf, spine and core switches joins the GPUs, one port each.
+- Two tiers of $k$-port switches reach $k^2/2$ GPUs; beyond that, three tiers and longer paths.
+- Every optical link needs two transceivers, so transceivers follow the tiers.
+- NVIDIA's SuperPOD is rail-aligned: more switches, simpler cabling per rack.
+
+<Keep>
+  Non-blocking two-tier limit $k \cdot k/2$:
+  <V of="tree.n2048.k64.o1.two_tier_max" fmt="int" /> GPUs on 64-port switches.
+</Keep>
+
+</Remember>

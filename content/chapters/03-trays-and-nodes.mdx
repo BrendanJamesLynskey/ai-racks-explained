@@ -9,11 +9,15 @@
 
 A GB200 NVL72 **compute tray** is a 1U box with two GB200 superchips: <V of="sys.gb200-nvl72.cpus_per_tray" fmt="int" /> Grace CPUs and <V of="sys.gb200-nvl72.gpus_per_tray" fmt="int" /> Blackwell GPUs. Each Grace connects to its two GPUs over **NVLink-C2C** (<V of="sys.gb200-nvl72.c2c_bidir" fmt="rate" />, both directions together) and has up to <V of="sys.gb200-nvl72.lpddr_per_cpu" fmt="bytes" /> of its own LPDDR5X memory at up to <V of="sys.gb200-nvl72.lpddr_bw_per_cpu" fmt="rate" />. The tray also carries <V of="sys.gb200-nvl72.nics_per_tray" fmt="int" /> ConnectX-7 network cards, one <V of="sys.gb200-nvl72.nic_bps" fmt="bits" /> port per GPU for the compute fabric, and <V of="sys.gb200-nvl72.dpus_per_tray" fmt="int" /> BlueField-3 DPUs for storage and management traffic. The GPUs' NVLinks leave from the back of the tray through cable cartridges to the switch trays.
 
+<span id="r-paths" />
+
 Data reaches a GPU's HBM by three kinds of path, and the animation runs each one with a 2 GB payload:
 
 - **From the network** (GPUDirect RDMA): the network card writes straight into GPU memory, without a copy through CPU memory. The port is the slow link: the whole path runs at <V of="pipe.rdma.c16.slow_bw" fmt="rate" /> at best.
 - **From Grace's memory** over NVLink-C2C: the way a GPU uses CPU memory as an overflow for its KV cache or for offloaded weights. Here C2C sets the pace, <V of="pipe.grace.c16.slow_bw" fmt="rate" /> per direction: <V of="pipe.grace.c16.total" fmt="time" /> for 2 GB in 16 chunks, against <V of="pipe.rdma.c16.total" fmt="time" /> from the network.
 - **From another GPU** in the rack over NVLink, through the switch trays: <V of="pipe.peer.c16.slow_bw" fmt="rate" /> per direction.
+
+<span id="r-chunks" />
 
 Switch the chunk count. Sent as one piece, a payload crosses each link in turn, so the times add up (<V of="pipe.grace.c1.total" fmt="time" /> from Grace). Cut into chunks, the links work at once on different chunks, and the transfer approaches the slowest link's time (<V of="pipe.grace.c16.efficiency" fmt="pct" /> of it with 16 chunks). Real transfer engines pipeline the same way, in much smaller pieces.
 
@@ -55,6 +59,8 @@ for (let c = 0; c < chunks; c++) {
 
 </Layer>
 
+<span id="r-node" />
+
 ## The 8-GPU node
 
 Before rack-scale NVLink, the unit was the 8-GPU server: an HGX baseboard with its own NVLink switches, x86 host CPUs over PCIe, and one network card per GPU. It is still the common shape of an air-cooled cluster.
@@ -74,3 +80,71 @@ Its NVLink domain ends at the chassis: <V of="sys.dgx-b200.gpus" fmt="int" /> GP
 - NVIDIA, [DGX GB200 user guide, hardware](https://docs.nvidia.com/dgx/dgxgb200-user-guide/hardware.html).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="r03-q1"
+  n={1}
+  choices={["The GPU's HBM", "The network card's port", "The NVLink switch"]}
+  answer={1}
+  q="Data arriving from the network by GPUDirect RDMA: which link sets the pace?"
+  href="#r-paths"
+  more="Three paths into HBM"
+>
+  The network port: the whole path runs at
+  <V of="pipe.rdma.c16.slow_bw" fmt="rate" /> at best, far below the HBM or
+  NVLink behind it.
+</Check>
+
+<Check
+  id="r03-q2"
+  n={2}
+  input="slider"
+  min={0}
+  max={100}
+  step={1}
+  of="pipe.grace.c16.efficiency"
+  fmt="pct"
+  abs={4}
+  q="2 GB from Grace's memory, cut into 16 chunks: what share of the slowest link's ideal speed does the transfer reach?"
+  href="#r-chunks"
+  more="Chunking"
+>
+  <V of="pipe.grace.c16.efficiency" fmt="pct" />: the links work at once on
+  different chunks, so the transfer approaches the slowest link's time.
+</Check>
+
+<Check
+  id="r03-q3"
+  n={3}
+  choices={[
+    "The same time: the slowest link sets it either way",
+    "About the sum of each link's time, close to twice as long here",
+    "Faster: there is no chunking overhead",
+  ]}
+  answer={1}
+  q="Send the same 2 GB as one piece instead. How long does it take?"
+  href="#r-chunks"
+  more="Chunking"
+>
+  One piece crosses each link in turn, so the times add:
+  <V of="pipe.grace.c1.total" fmt="time" /> against
+  <V of="pipe.grace.c16.total" fmt="time" /> in 16 chunks.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- A GB200 compute tray: two Grace CPUs and four GPUs, joined by NVLink-C2C, with a network port per GPU.
+- Data reaches HBM from the network, from Grace's memory or from another GPU; the slowest link sets the pace.
+- Chunked transfers pipeline across the links and approach the slowest link's time.
+- The 8-GPU node's NVLink domain ends at the chassis; the NVL72 rack moves it out to 72 GPUs.
+
+<Keep>
+  With $C$ chunks, $T \to S / B_{\min}$: pipelining hides every link but the
+  slowest.
+</Keep>
+
+</Remember>
