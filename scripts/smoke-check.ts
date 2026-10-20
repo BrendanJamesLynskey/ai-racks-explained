@@ -29,6 +29,12 @@ const CREDIT = [
   'href="https://brendanjameslynskey.github.io/">Brendan Lynskey</a>',
 ];
 
+/** The shared definitions link on /about (brief 44D). */
+const DEFINITIONS = [
+  "data-definitions-link",
+  'href="https://agent-harnesses-explained.vercel.app/definitions"',
+];
+
 type Result = { path: string; ok: boolean; detail: string };
 
 const headers: Record<string, string> = process.env.VERCEL_BYPASS
@@ -95,6 +101,7 @@ async function main(): Promise<void> {
     ]),
     checkPage(base, "/about", [
       ...CREDIT,
+      ...DEFINITIONS,
       "Spec cross-checks, rules and a measurement",
       'data-check="superpod-16su-core"',
       'data-check="nccl-nvls-h200"',
