@@ -25,7 +25,7 @@ A rack is a natural unit for it. Inside one NVL72-class rack every GPU is one NV
 
 <span id="r-ctx" />
 
-**Context-optimised parts.** If prefill is compute-bound, it does not need HBM. NVIDIA has announced Rubin CPX, a GPU with <V of="dis.meta.ctx_mem" fmt="bytes" /> of GDDR7 instead of HBM for "massive-context" prefill, expected at the end of 2026 (planned, not shipping). The simulation's context-optimised part is illustrative, not CPX: the rack GPU's own compute (the GB200 preset's), so that it differs from the rack's GPUs in memory only, with <V of="dis.meta.ctx_mem" fmt="bytes" /> of memory at <V of="dis.meta.ctx_bw" fmt="rate" />, a GDDR7-class bandwidth chosen by us, since NVIDIA states none. Put it in the prefill pool and TTFT barely moves (<V of="dis.12-6.nvlink.ctx-prefill.ttft_p99" fmt="time" /> against <V of="dis.12-6.nvlink.gb200.ttft_p99" fmt="time" />). Put it in the decode pool and time per token rises to <V of="dis.12-6.nvlink.ctx-decode.tpot_p99" fmt="time" />: only <V of="dis.12-6.nvlink.ctx-decode.slo" fmt="pct" /> of requests meet the SLOs. That asymmetry is the case for building different hardware for each pool ([Inference Trade-offs, chapter 5](https://inference-tradeoffs-explained.vercel.app/learn/05-heterogeneous-and-optical-pools)).
+**Context-optimised parts.** If prefill is compute-bound, it does not need HBM. NVIDIA has announced Rubin CPX, a GPU with <V of="dis.meta.ctx_mem" fmt="bytes" /> of GDDR7 instead of HBM for "massive-context" prefill, expected at the end of 2026 (planned, not shipping). The simulation's context-optimised part is illustrative, not CPX: the rack GPU's own compute (the GB200 preset's), so that it differs from the rack's GPUs in memory only, with <V of="dis.meta.ctx_mem" fmt="bytes" /> of memory at <V of="dis.meta.ctx_bw" fmt="rate" />, a GDDR7-class bandwidth chosen by us, since NVIDIA states none. Put it in the prefill pool and TTFT does not move (<V of="dis.12-6.nvlink.ctx-prefill.ttft_p99" fmt="time" /> against <V of="dis.12-6.nvlink.gb200.ttft_p99" fmt="time" /> at the 99th percentile). Put it in the decode pool and time per token rises to <V of="dis.12-6.nvlink.ctx-decode.tpot_p99" fmt="time" />: only <V of="dis.12-6.nvlink.ctx-decode.slo" fmt="pct" /> of requests meet the SLOs. That asymmetry is the case for building different hardware for each pool ([Inference Trade-offs, chapter 5](https://inference-tradeoffs-explained.vercel.app/learn/05-heterogeneous-pools)).
 
 <DisaggTable part="parts" />
 
@@ -37,7 +37,7 @@ A rack is a natural unit for it. Inside one NVL72-class rack every GPU is one NV
 
 <Callout kind="illustrative">
 
-The power and energy figures use the simulator's illustrative coefficients (GPU power only; idle power included) and are averaged over the whole run, including the drain after the last arrival. The simulator's GB200 preset takes its memory, bandwidth and compute from NVIDIA's GB200 NVL72 page, halved per GPU (<V of="dis.meta.gb200_mem" fmt="bytes" />, the same as this site's <V of="gpu.b200.hbm_bytes" fmt="bytes" />), and its board limit from Blackwell's "up to 1,200 W". The simulator does not model the rack's 72-GPU NVLink domain as such: the hand-off over NVLink is this chapter's choice of link. The context-optimised part, the link latencies and energy per bit are illustrative. Performance is the simulator's roofline cost model, not a measurement. Its own validation against published serving results (Sarathi-Serve, vLLM, SGLang) is section 22 of its [results.md](https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim/blob/ba37774fe2315ca960d7471be352382e301f89a1/examples/results.md): some figures reproduce, some only in direction, and it says which. DistServe's headline, that it "can serve 7.4x more requests or 12.6x tighter SLO", is that paper's own result, quoted.
+The power and energy figures use the simulator's illustrative coefficients (GPU power only; idle power included) and are averaged over the whole run, including the drain after the last arrival. The simulator's GB200 preset takes its memory, bandwidth and compute from NVIDIA's GB200 NVL72 page, halved per GPU (<V of="dis.meta.gb200_mem" fmt="bytes" />, the same as this site's <V of="gpu.b200.hbm_bytes" fmt="bytes" />), and its board limit from Blackwell's "up to 1,200 W". The simulator does not model the rack's 72-GPU NVLink domain as such: the hand-off over NVLink is this chapter's choice of link. The context-optimised part, the link latencies and energy per bit are illustrative. Performance is the simulator's roofline cost model, not a measurement. Its own validation against published serving results (Sarathi-Serve, vLLM, SGLang) is section 22 of its [results.md](https://github.com/BrendanJamesLynskey/Disaggregated_Inference_Sim/blob/ac1846a44df93ea18145b6031867a78ba15aa7c9/examples/results.md): some figures reproduce, some only in direction, and it says which. DistServe's headline, that it "can serve 7.4x more requests or 12.6x tighter SLO", is that paper's own result, quoted.
 
 </Callout>
 
@@ -125,7 +125,7 @@ engine.DEVICES["rack-ctx"] = {
   id="r08-q3"
   n={3}
   choices={[
-    "In the prefill pool: time to first token barely moves",
+    "In the prefill pool: time to first token does not move",
     "In the decode pool: it serves decode just as well",
     "In either pool: it makes no difference",
   ]}
@@ -134,7 +134,7 @@ engine.DEVICES["rack-ctx"] = {
   href="#r-ctx"
   more="Context-optimised parts"
 >
-  In prefill, which is compute-bound: TTFT moves to
+  In prefill, which is compute-bound: TTFT stays at
   <V of="dis.12-6.nvlink.ctx-prefill.ttft_p99" fmt="time" />. In decode, which
   is bandwidth-bound, only <V of="dis.12-6.nvlink.ctx-decode.slo" fmt="pct" />{" "}
   of requests meet the SLOs.
