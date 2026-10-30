@@ -45,7 +45,7 @@ const SISTER_SLUGS: Record<string, string[]> = {
   ],
   "inference-tradeoffs-explained": [
     "04-disaggregation",
-    "05-heterogeneous-and-optical-pools",
+    "05-heterogeneous-pools",
     "06-kv-handoff-and-compression",
     "11-power-and-energy",
     "12-hardware-and-cost",
